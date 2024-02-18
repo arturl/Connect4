@@ -50,6 +50,7 @@ namespace Connect4AIEngine
         {
             public EvalResult evalResult;
             public TimeSpan elapsedTime;
+            public bool forcedMove;
         }
 
         public static EvalResultWithTime NegaMax(Board board, Disk color, int depth)
@@ -58,17 +59,19 @@ namespace Connect4AIEngine
             var stopWatch = Stopwatch.StartNew();
 
             var simple = GetBestMoveBasic(board, color);
-            if (simple.Move >= 0)
-            {
-                result.evalResult = simple;
-                result.elapsedTime = stopWatch.Elapsed;
-            }
-            else
+            if (simple.Move == -1)
             {
                 // Need full analysis
                 EvalResult evalResult = NegaMaxWorker(board, color, depth, -100, 100);
                 result.evalResult = evalResult;
                 result.elapsedTime = stopWatch.Elapsed;
+                result.forcedMove = false;
+            }
+            else
+            {
+                result.evalResult = simple;
+                result.elapsedTime = stopWatch.Elapsed;
+                result.forcedMove = true;
             }
             return result;
         }

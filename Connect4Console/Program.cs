@@ -111,15 +111,23 @@ namespace Connect4Console
                         var evalResultWithTimer = GameEngine.NegaMax(board, nextToPlay, 12);
                         move = evalResultWithTimer.evalResult.Move;
 
-                        Console.WriteLine($"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime}");
-                        if(evalResultWithTimer.evalResult.Score > 0)
-                        {
-                            Console.WriteLine("AI will win");
-                        }
-                        else if (evalResultWithTimer.evalResult.Score < 0)
-                        {
-                            Console.WriteLine("AI might lose");
-                        }
+                        Console.WriteLine($"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime}. ");
+
+						if (evalResultWithTimer.forcedMove)
+						{
+							Console.WriteLine("Forced move.");
+						}
+						else
+						{
+							if (evalResultWithTimer.evalResult.Score > 0)
+							{
+								Console.WriteLine("AI will win");
+							}
+							else if (evalResultWithTimer.evalResult.Score < 0)
+							{
+								Console.WriteLine("AI might lose");
+							}
+						}
                     }
                     else
                     {

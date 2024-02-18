@@ -129,14 +129,22 @@
 					var evalResultWithTimer = Connect4AIEngine.GameEngine.NegaMax(board, nextToPlay, this.Level);
 					move = evalResultWithTimer.evalResult.Move;
 
-					GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime}";
-					if (evalResultWithTimer.evalResult.Score > 0)
+					GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime}. ";
+
+					if(evalResultWithTimer.forcedMove)
 					{
-						GameStatus += "AI will win";
+						GameStatus += "Forced move.";
 					}
-					else if (evalResultWithTimer.evalResult.Score < 0)
+					else
 					{
-						GameStatus += "AI might lose";
+						if (evalResultWithTimer.evalResult.Score > 0)
+						{
+							GameStatus += "AI will win";
+						}
+						else if (evalResultWithTimer.evalResult.Score < 0)
+						{
+							GameStatus += "AI might lose";
+						}
 					}
 
 					board.DropDiskAt(nextToPlay, move);
