@@ -5,114 +5,245 @@
 
 <h1>Connect4</h1>
 
-@if (forecasts == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-	<table class="table">
-		<style>
-			table,
-			td,
-			th {
-				border: 5px solid;
-			}
+<table class="table">
+	<style>
+		table,
+		td,
+		th {
+			border: 5px solid;
+		}
 
-			table {
-				text-align: center;
-			}
-		</style>
+		table {
+			text-align: center;
+		}
+	</style>
 
-		<thead>
+	<thead>
+		<tr>
+			<th>0</th>
+			<th>1</th>
+			<th>2</th>
+			<th>3</th>
+			<th>4</th>
+			<th>5</th>
+			<th>6</th>
+		</tr>
+		<tr>
+			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button0">Drop disk here</button></td>
+			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button1">Drop disk here</button></td>
+			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button2">Drop disk here</button></td>
+			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button3">Drop disk here</button></td>
+			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button4">Drop disk here</button></td>
+			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button5">Drop disk here</button></td>
+			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button6">Drop disk here</button></td>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var row in data)
+		{
 			<tr>
-				<th>0</th>
-				<th>1</th>
-				<th>2</th>
-				<th>3</th>
-				<th>4</th>
-				<th>5</th>
-				<th>6</th>
+				<td><img src=@row[0]></td>
+				<td><img src=@row[1]></td>
+				<td><img src=@row[2]></td>
+				<td><img src=@row[3]></td>
+				<td><img src=@row[4]></td>
+				<td><img src=@row[5]></td>
+				<td><img src=@row[6]></td>
 			</tr>
-		</thead>
-		<tbody>
-			@foreach (var row in data)
-			{
-				<tr>
-					<td><img src=@row[0]></td>
-					<td><img src=@row[1]></td>
-					<td><img src=@row[2]></td>
-					<td><img src=@row[3]></td>
-					<td><img src=@row[4]></td>
-					<td><img src=@row[5]></td>
-					<td><img src=@row[6]></td>
-				</tr>
-			}
-			<tr>
-				<td><button class="btn btn-primary" @onclick="Button0">Place</button></td>
-				<td><button class="btn btn-primary" @onclick="Button1">Place</button></td>
-				<td><button class="btn btn-primary" @onclick="Button2">Place</button></td>
-				<td><button class="btn btn-primary" @onclick="Button3">Place</button></td>
-				<td><button class="btn btn-primary" @onclick="Button4">Place</button></td>
-				<td><button class="btn btn-primary" @onclick="Button5">Place</button></td>
-				<td><button class="btn btn-primary" @onclick="Button6">Place</button></td>
-			</tr>
-		</tbody>
-	</table>
+		}
+	</tbody>
+</table>
 
-	<p role="status">@GameStatus</p>
+<h2>@GameStatus</h2>
 
-	<button class="btn btn-primary" @onclick="ButtonStart">Start a new game</button>
-}
+<EditForm EditContext="editContext" OnSubmit="Submit" FormName="Starship4">
+	<DataAnnotationsValidator />
+	<div>
+		<button class="btn btn-primary">Start new game</button>
+		<label>
+			Difficulty level:
+			<InputNumber @bind-Value="Model!.Level" />
+		</label>
+	</div>
+</EditForm>
 
 @code {
 
+	private int Level = 7;
+
 	private string GameStatus = "Ready to start a new game!";
+	private bool placeButtonsDisabled = true;
 
-	private void Button0() { data[0][0] = "red.jpg"; }
-	private void Button1() { }
-	private void Button2() { }
-	private void Button3() { }
-	private void Button4() { }
-	private void Button5() { }
-	private void Button6() { }
+	private Task Button0() => PressButton(0);
+	private Task Button1() => PressButton(1);
+	private Task Button2() => PressButton(2);
+	private Task Button3() => PressButton(3);
+	private Task Button4() => PressButton(4);
+	private Task Button5() => PressButton(5);
+	private Task Button6() => PressButton(6);
 
-	private void ButtonStart()
+	private Connect4AIEngine.Board board = null;
+	Connect4AIEngine.Disk nextToPlay = Connect4AIEngine.Disk.Blue;
+
+	private async Task PressButton(int move)
 	{
-		this.GameStatus = "New game started. You play blue, AI plays red";
+		await Task.CompletedTask;
+
+		var availableMoves = board.GetAvailableMovesForPlayer(Connect4AIEngine.Disk.Empty);
+		if (!availableMoves.Contains(move))
+		{
+			GameStatus = $"Choice {move} is incorrect, try again";
+		}
+		else
+		{
+			placeButtonsDisabled = true;
+
+			board.DropDiskAt(nextToPlay, move);
+			UpdateBoard();
+
+			Connect4AIEngine.Disk winner = Connect4AIEngine.Disk.Empty;
+			string direction = string.Empty;
+			bool isWinReached = board.IsWinReached(ref winner, ref direction);
+
+			if (isWinReached)
+			{
+				if(winner == nextToPlay)
+				{
+					GameStatus = $"Congratulations, you won the game! Winning direction: {direction}";
+				}
+				else
+				{
+					GameStatus = $"Error 1001";
+				}
+			}
+			else
+			{
+				nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
+				this.GameStatus = "Analyzing...";
+				if (!board.GetAvailableMovesForPlayer(nextToPlay).Any())
+				{
+					this.GameStatus = "Game over - no more moves";
+				}
+				else
+				{
+					var evalResultWithTimer = Connect4AIEngine.GameEngine.NegaMax(board, nextToPlay, this.Level);
+					move = evalResultWithTimer.evalResult.Move;
+
+					GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime}";
+					if (evalResultWithTimer.evalResult.Score > 0)
+					{
+						GameStatus += "AI will win";
+					}
+					else if (evalResultWithTimer.evalResult.Score < 0)
+					{
+						GameStatus += "AI might lose";
+					}
+
+					board.DropDiskAt(nextToPlay, move);
+					UpdateBoard();
+
+					winner = Connect4AIEngine.Disk.Empty;
+					isWinReached = board.IsWinReached(ref winner, ref direction);
+
+					if (isWinReached)
+					{
+						if (winner == nextToPlay)
+						{
+							GameStatus = $"Game over! AI won the game! Winning direction: {direction}";
+						}
+						else
+						{
+							GameStatus = $"Error 1002";
+						}
+					}
+					else
+					{
+						nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
+						if (!board.GetAvailableMovesForPlayer(nextToPlay).Any())
+						{
+							this.GameStatus = "Game over - no more moves";
+						}
+						else
+						{
+							placeButtonsDisabled = false;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private void UpdateBoard()
+	{
+		int irow = 0;
+		foreach (var row in data)
+		{
+			for (int i = 0; i < 7; i++)
+			{
+				switch (board[i,irow])
+				{
+					case Connect4AIEngine.Disk.Blue : row[i] = "blue.jpg"; break;
+					case Connect4AIEngine.Disk.Red: row[i] = "red.jpg"; break;
+					default: row[i] = "empty.jpg"; break;
+				}
+			}
+			irow++;
+		}
 	}
 
 	private List<string[]> data = new List<String[]> { 
-		new string[]{"empty.jpg", "blue.jpg",  "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
-		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
-		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
-		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
-		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
-		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "red.jpg",   "empty.jpg", "empty.jpg", "empty.jpg" },
+		new string[7],
+		new string[7],
+		new string[7],
+		new string[7],
+		new string[7],
+		new string[7],
 	};
 
-    private WeatherForecast[]? forecasts;
+	private EditContext? editContext;
 
-    protected override async Task OnInitializedAsync()
-    {
-        // Simulate asynchronous loading to demonstrate streaming rendering
-        await Task.Delay(500);
+	[SupplyParameterFromForm]
+	private StartGameForm? Model { get; set; }
 
-        var startDate = DateOnly.FromDateTime(DateTime.Now);
-        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
-        {
-            Date = startDate.AddDays(index),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = summaries[Random.Shared.Next(summaries.Length)]
-        }).ToArray();
-    }
+	private async Task Submit()
+	{
+		if (editContext != null && editContext.Validate())
+		{
+			if (editContext.Model is StartGameForm form)
+			{
+				this.Level = form.Level;
+			}
+			this.GameStatus = "New game started. You play blue, AI plays red. Make your move!";
+			board = new Connect4AIEngine.Board();
+			nextToPlay = Connect4AIEngine.Disk.Blue;
+			UpdateBoard();
+			placeButtonsDisabled = false;
+		}
+		else
+		{
+			this.GameStatus = "Level incorrect, new game not started";
+			if (editContext.Model is StartGameForm form)
+			{
+				form.Level = this.Level;
+			}
+		}
+	}
 
-    private class WeatherForecast
-    {
-        public DateOnly Date { get; set; }
-        public int TemperatureC { get; set; }
-        public string? Summary { get; set; }
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
+	protected override async Task OnInitializedAsync()
+	{
+		Model ??=
+			new()
+				{
+					Level = this.Level,
+				};
+		editContext = new(Model);
+
+		foreach(var row in data)
+		{
+			for(int i=0; i<7; i++)
+			{
+				row[i] = "empty.jpg";
+			}
+		}
+	}
 }

@@ -1,283 +1,36 @@
-﻿namespace Connect4Console
+﻿using Connect4AIEngine;
+using System.Diagnostics;
+using static Connect4AIEngine.GameEngine;
+
+namespace Connect4Console
 {
-    public enum Disk
+    class AITimer : IDisposable
     {
-        Empty,
-        Red,
-        Blue
+        Stopwatch stopwatch = new Stopwatch();
+
+        public AITimer()
+        {
+            stopwatch.Start();
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // free managed resources
+            }
+            // free native resources if there are any.
+            stopwatch.Stop();
+            Console.WriteLine($"Elapsed time: {stopwatch.Elapsed}");
+        }
     }
 
-    public class Board
-    {
-        public const int Width = 7;
-        public const int Height = 6;
-
-        private Disk[,] field = new Disk[Width, Height];
-        public Board() {
-            for(int col=0; col<Width; col++)
-            {
-                for (int row = 0; row < Height; row++)
-                {
-                    field[col, row] = Disk.Empty;
-                }
-            }
-        }
-
-        private Board(Board other)
-        {
-            for (int col = 0; col < Width; col++)
-            {
-                for (int row = 0; row < Height; row++)
-                {
-                    field[col, row] = other.field[col, row];
-                }
-            }
-        }
-
-        public Disk this[int col, int row]
-        {
-            get => field[col, row];
-            set => field[col, row] = value;
-        }
-
-        public Board Clone()
-        {
-            var newBoard = new Board(this);
-            return newBoard;
-        }
-
-        public void DropDiskAt(Disk disk, int col)
-        {
-            for(int row = Height-1; row >= 0; row--)
-            {
-                if (field[col, row]==Disk.Empty)
-                {
-                    field[col, row] = disk;
-                    return;
-                }
-            }
-        }
-
-        public static string GetPrintableDiskValue(Disk d)
-        {
-            switch(d)
-            {
-                case Disk.Red:   return "X";
-                case Disk.Blue:  return "O";
-                default: return " ";
-            }
-        }
-
-        public void PrintToConsole()
-        {
-            Console.WriteLine(VisualizeAsString());
-        }
-
-        private string VisualizeAsString()
-        {
-            string board = """
-                       0     1     2     3     4     5     6 
-                    ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐
-                  0 │ 00  │ 01  │ 02  │ 03  │ 04  │ 05  │ 06  │
-                    ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-                  1 │ 10  │ 11  │ 12  │ 13  │ 14  │ 15  │ 16  │
-                    ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-                  2 │ 20  │ 21  │ 22  │ 23  │ 24  │ 25  │ 26  │
-                    ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-                  3 │ 30  │ 31  │ 32  │ 33  │ 34  │ 35  │ 36  │
-                    ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-                  4 │ 40  │ 41  │ 42  │ 43  │ 44  │ 45  │ 46  │
-                    ├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-                  5 │ 50  │ 51  │ 52  │ 53  │ 54  │ 55  │ 56  │
-                    └─────┴─────┴─────┴─────┴─────┴─────┴─────┘
-                """;
-
-            for (int row = 0; row < Height; row++)
-            {
-                for (int col = 0; col < Width; col++)
-                {
-                    string coordinates = $"{row}{col}";
-                    board = board.Replace(coordinates, $" {GetPrintableDiskValue(field[col, row])}");
-                }
-            }
-
-            return board;
-        }
-
-        private bool IsWinReached(ref Disk disk, List<int[]> coordinateArrays)
-        {
-            foreach(var coordinateArray in coordinateArrays)
-            {
-                Disk lastValueSeen = Disk.Empty;
-                int seqItemsDetected = 0;
-                for(int i=0; i<coordinateArray.Length; i+=2)
-                {
-                    int row = coordinateArray[i];
-                    int col = coordinateArray[i+1];
-
-                    if (i == 0)
-                    {
-                        lastValueSeen = field[col, row];
-                        seqItemsDetected = 1;
-                    }
-                    else
-                    {
-                        if (field[col, row] == lastValueSeen)
-                        {
-                            seqItemsDetected++;
-                            if (lastValueSeen != Disk.Empty && seqItemsDetected == 4)
-                            {
-                                disk = lastValueSeen;
-                                return true;
-                            }
-                        }
-                        else
-                        {
-                            seqItemsDetected = 1;
-                            lastValueSeen = field[col, row];
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        private bool IsWinReachedHorizontal(ref Disk disk, ref string direction)
-        {
-            List<int[]> horizontal =
-            [
-                [0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6],
-                [1, 0, 1, 1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6],
-                [2, 0, 2, 1, 2, 2, 2, 3, 2, 4, 2, 5, 2, 6],
-                [3, 0, 3, 1, 3, 2, 3, 3, 3, 4, 3, 5, 3, 6],
-                [4, 0, 4, 1, 4, 2, 4, 3, 4, 4, 4, 5, 4, 6],
-                [5, 0, 5, 1, 5, 2, 5, 3, 5, 4, 5, 5, 5, 6],
-            ];
-
-            if( IsWinReached(ref disk, horizontal))
-            {
-                direction = "horizontal";
-                return true;
-            }
-            return false;
-        }
-
-        private bool IsWinReachedVertical(ref Disk disk, ref string direction)
-        {
-            List<int[]> vertical =
-            [
-                [0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0],
-                [0, 1, 1, 1, 2, 1, 3, 1, 4, 1, 5, 1],
-                [0, 2, 1, 2, 2, 2, 3, 2, 4, 2, 5, 2],
-                [0, 3, 1, 3, 2, 3, 3, 3, 4, 3, 5, 3],
-                [0, 4, 1, 4, 2, 4, 3, 4, 4, 4, 5, 4],
-                [0, 5, 1, 5, 2, 5, 3, 5, 4, 5, 5, 5],
-                [0, 6, 1, 6, 2, 6, 3, 6, 4, 6, 5, 6],
-            ];
-
-            if (IsWinReached(ref disk, vertical))
-            {
-                direction = "vertical";
-                return true;
-            }
-            return false;
-        }
-
-        private bool IsWinReachedDiagonal(ref Disk disk, ref string direction)
-        {
-            List<int[]> mainDiagonal =
-            [
-                [2, 0, 3, 1, 4, 2, 5, 3],
-                [1, 0, 2, 1, 3, 2, 4, 3, 5, 4],
-                [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5],
-                [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6],
-                [0, 2, 1, 3, 2, 4, 3, 5, 4, 6],
-                [0, 3, 1, 4, 2, 5, 3, 6]
-            ];
-
-            if (IsWinReached(ref disk, mainDiagonal))
-            {
-                direction = "main diagonal";
-                return true;
-            }
-
-            List<int[]> secondaryDiagonal =
-            [
-                [3,0, 2,1, 1,2, 0,3],
-                [4,0, 3,1, 2,2, 1,3, 0,4],
-                [5,0, 4,1, 3,2, 2,3, 1,4, 0,5],
-                [5,1, 4,2, 3,3, 2,4, 1,5, 0,6],
-                [5,2, 4,3, 3,4, 2,5, 1,6],
-                [5,3, 4,4, 3,5, 2,6],
-            ];
-
-            if (IsWinReached(ref disk, secondaryDiagonal))
-            {
-                direction = "secondary diagonal";
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool IsWinReachedHorizontalOld(ref Disk disk, ref int winningRow)
-        {
-            for(int row = 0; row < Height; row++)
-            {
-                Disk lastValueSeen = Disk.Empty;
-                int seqItemsDetected = 0;
-                for (int col = 0; col < Width; col++)
-                {
-                    if(col == 0)
-                    {
-                        lastValueSeen = field[col, row];
-                        seqItemsDetected = 1;
-                    }
-                    else
-                    {
-                        if (field[col,row] == lastValueSeen)
-                        {
-                            seqItemsDetected++;
-                            if(lastValueSeen != Disk.Empty && seqItemsDetected == 4)
-                            {
-                                disk = lastValueSeen;
-                                winningRow = row;
-                                return true;
-                            }
-                        }
-                        else
-                        {
-                            seqItemsDetected = 1;
-                            lastValueSeen = field[col, row];
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        public bool IsWinReached(ref Disk disk, ref string direction)
-        {
-            if (IsWinReachedHorizontal(ref disk, ref direction)) return true;
-            if (IsWinReachedVertical(ref disk, ref direction)) return true;
-            if (IsWinReachedDiagonal(ref disk, ref direction)) return true;
-
-            return false;
-        }
-
-        public List<int> GetAvailableMovesForPlayer(Disk not_used)
-        {
-            var possibleMoves = new List<int>();
-            int[] positionsInCertainCleverOrder = [3, 2, 4, 1, 5, 0, 6];
-            foreach (int col in positionsInCertainCleverOrder)
-            {
-                if (this[col, 0] == Disk.Empty) possibleMoves.Add(col);
-            }
-            return possibleMoves;
-        }
-
-    }
     internal class Program
     {
         static void Main(string[] args)
@@ -305,11 +58,20 @@
 
                 board.PrintToConsole();
 
-                var evalResult = GameEngine.NegaMax(board, Disk.Red, 7);
+                EvalResult evalResult;
+
+                using (var timer = new AITimer())
+                {
+                    evalResult = GameEngine.NegaMax(board, Disk.Red, 12);
+                }
+
+                Console.WriteLine($"Move={evalResult.Move}, Score={evalResult.Score}");
 
                 Disk winner = Disk.Empty;
                 string direction = string.Empty;
                 bool b = board.IsWinReached(ref winner, ref direction);
+
+                return;
             }
 #endif
             Stack<Board> undoBuffer = new Stack<Board>();
@@ -346,15 +108,15 @@
                         // AI plays for Red
                         //move = GameEngine.GetBestMoveBasic(board, nextToPlay);
 
-                        var evalResult = GameEngine.NegaMax(board, nextToPlay, 12);
-                        move = evalResult.Move;
+                        var evalResultWithTimer = GameEngine.NegaMax(board, nextToPlay, 12);
+                        move = evalResultWithTimer.evalResult.Move;
 
-                        Console.WriteLine($"AI chose {evalResult.Move}. Score = {evalResult.Score}");
-                        if(evalResult.Score > 0)
+                        Console.WriteLine($"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime}");
+                        if(evalResultWithTimer.evalResult.Score > 0)
                         {
                             Console.WriteLine("AI will win");
                         }
-                        else if (evalResult.Score < 0)
+                        else if (evalResultWithTimer.evalResult.Score < 0)
                         {
                             Console.WriteLine("AI might lose");
                         }

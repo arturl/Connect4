@@ -1,22 +1,17 @@
-﻿using Connect4Console;
-using System;
-using System.Collections.Generic;
+﻿using System.Diagnostics;
 using System.Drawing;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
-namespace Connect4Console
+namespace Connect4AIEngine
 {
     public class GameEngine
     {
-        public static int GetBestMoveBasic(Board board, Disk disk)
+        public static EvalResult GetBestMoveBasic(Board board, Disk disk)
         {
             // Level 1: 1 move
 
-            for(int col=0; col<Board.Width; col++)
+            var possible_moves = board.GetAvailableMovesForPlayer(disk);
+
+            foreach (var col in possible_moves)
             {
                 Disk possibleWinner = Disk.Empty;
                 string dummy = string.Empty;
@@ -27,28 +22,22 @@ namespace Connect4Console
                 if (newBoard.IsWinReached(ref possibleWinner, ref dummy))
                 {
                     // I will win if I place here, yay!
-                    Console.WriteLine($"Found win at {col}");
-                    return col;
+                    return new EvalResult { Move = col, Score = 1 };
                 }
 
                 // Will the opponent win if they place there?
                 var newBoard2 = board.Clone();
                 var opponent = (disk == Disk.Red) ? Disk.Blue : Disk.Red;
                 newBoard2.DropDiskAt(opponent, col);
-                if(newBoard2.IsWinReached(ref possibleWinner, ref dummy))
+                if (newBoard2.IsWinReached(ref possibleWinner, ref dummy))
                 {
-                    Console.WriteLine($"Preventing opponent win at {col}");
                     // don't let them - place there myself
-                    return col;
+                    return new EvalResult { Move = col, Score = -1 };
                 }
             }
 
-            // Not sure what to do - make a random move
-            Console.WriteLine($"Fall back to l0");
-
-            // Level 0 - random
-            Random rnd = new Random();
-            return rnd.Next(7);
+            // More analysis needed
+            return new EvalResult { Move = -1, Score = -1 };
         }
 
         public struct EvalResult
@@ -57,10 +46,31 @@ namespace Connect4Console
             public int Move;
         }
 
-        public static EvalResult NegaMax(Board board, Disk color, int depth)
+        public struct EvalResultWithTime
         {
-            EvalResult evalResult = negamax_worker(board, color, depth, -100, 100);
-            return evalResult;
+            public EvalResult evalResult;
+            public TimeSpan elapsedTime;
+        }
+
+        public static EvalResultWithTime NegaMax(Board board, Disk color, int depth)
+        {
+            EvalResultWithTime result = new EvalResultWithTime();
+            var stopWatch = Stopwatch.StartNew();
+
+            var simple = GetBestMoveBasic(board, color);
+            if (simple.Move >= 0)
+            {
+                result.evalResult = simple;
+                result.elapsedTime = stopWatch.Elapsed;
+            }
+            else
+            {
+                // Need full analysis
+                EvalResult evalResult = NegaMaxWorker(board, color, depth, -100, 100);
+                result.evalResult = evalResult;
+                result.elapsedTime = stopWatch.Elapsed;
+            }
+            return result;
         }
 
         private static int Eval(Board board, Disk player)
@@ -68,7 +78,7 @@ namespace Connect4Console
             Disk winner = Disk.Empty;
             string dummy = string.Empty;
             bool isWinReached = board.IsWinReached(ref winner, ref dummy);
-            if(isWinReached)
+            if (isWinReached)
             {
                 if (winner == player) return 1;
                 return -1;
@@ -76,7 +86,25 @@ namespace Connect4Console
             return 0;
         }
 
-        private static EvalResult negamax_worker(Board board, Disk color, int depth, int alpha, int beta)
+        private static int EvalForOrdering(Board board, int move, Disk color)
+        {
+            var child = board.Clone();
+            child.DropDiskAt(color, move);
+            return Eval(board, color);
+        }
+
+        private static int EvalForOrdering2(Board board, int move, Disk color)
+        {
+            if (board[move, 5] == Disk.Empty) return 1;
+            return 0;
+        }
+
+        private static void OrderMoves(Board board, List<int> moves, Disk color)
+        {
+            moves = moves.OrderBy(move => EvalForOrdering2(board, move, color)).ToList<int>();
+        }
+
+        private static EvalResult NegaMaxWorker(Board board, Disk color, int depth, int alpha, int beta)
         {
             var possible_moves = board.GetAvailableMovesForPlayer(color);
 
@@ -110,7 +138,7 @@ namespace Connect4Console
             if (terminate)
             {
                 var score = Eval(board, color);
-                if(!possible_moves.Any())
+                if (!possible_moves.Any())
                 {
                     return new EvalResult { Score = score, Move = -1 };
                 }
@@ -122,22 +150,25 @@ namespace Connect4Console
             var value = -100;
             int best_move = -1;
 
-            foreach(var move in possible_moves)
+            // OrderMoves(board, possible_moves, color);
+
+            foreach (var move in possible_moves)
             {
                 var child = board.Clone();
                 child.DropDiskAt(color, move);
 
                 Disk opposite = color == Disk.Blue ? Disk.Red : Disk.Blue;
-                EvalResult evalResult = negamax_worker(child, opposite, depth - 1, -beta, -alpha);
+                EvalResult evalResult = NegaMaxWorker(child, opposite, depth - 1, -beta, -alpha);
                 int score = -evalResult.Score;
 
-                if(score > value) {
+                if (score > value)
+                {
                     value = score;
                     best_move = move;
                 }
 
                 alpha = int.Max(alpha, value);
-                if(alpha >= beta)
+                if (alpha >= beta)
                 {
                     break; // cut-off
                 }
