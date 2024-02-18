@@ -1,0 +1,118 @@
+﻿@page "/connect4"
+@rendermode InteractiveServer
+
+<PageTitle>Connect4</PageTitle>
+
+<h1>Connect4</h1>
+
+@if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+	<table class="table">
+		<style>
+			table,
+			td,
+			th {
+				border: 5px solid;
+			}
+
+			table {
+				text-align: center;
+			}
+		</style>
+
+		<thead>
+			<tr>
+				<th>0</th>
+				<th>1</th>
+				<th>2</th>
+				<th>3</th>
+				<th>4</th>
+				<th>5</th>
+				<th>6</th>
+			</tr>
+		</thead>
+		<tbody>
+			@foreach (var row in data)
+			{
+				<tr>
+					<td><img src=@row[0]></td>
+					<td><img src=@row[1]></td>
+					<td><img src=@row[2]></td>
+					<td><img src=@row[3]></td>
+					<td><img src=@row[4]></td>
+					<td><img src=@row[5]></td>
+					<td><img src=@row[6]></td>
+				</tr>
+			}
+			<tr>
+				<td><button class="btn btn-primary" @onclick="Button0">Place</button></td>
+				<td><button class="btn btn-primary" @onclick="Button1">Place</button></td>
+				<td><button class="btn btn-primary" @onclick="Button2">Place</button></td>
+				<td><button class="btn btn-primary" @onclick="Button3">Place</button></td>
+				<td><button class="btn btn-primary" @onclick="Button4">Place</button></td>
+				<td><button class="btn btn-primary" @onclick="Button5">Place</button></td>
+				<td><button class="btn btn-primary" @onclick="Button6">Place</button></td>
+			</tr>
+		</tbody>
+	</table>
+
+	<p role="status">@GameStatus</p>
+
+	<button class="btn btn-primary" @onclick="ButtonStart">Start a new game</button>
+}
+
+@code {
+
+	private string GameStatus = "Ready to start a new game!";
+
+	private void Button0() { data[0][0] = "red.jpg"; }
+	private void Button1() { }
+	private void Button2() { }
+	private void Button3() { }
+	private void Button4() { }
+	private void Button5() { }
+	private void Button6() { }
+
+	private void ButtonStart()
+	{
+		this.GameStatus = "New game started. You play blue, AI plays red";
+	}
+
+	private List<string[]> data = new List<String[]> { 
+		new string[]{"empty.jpg", "blue.jpg",  "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
+		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
+		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
+		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
+		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg", "empty.jpg" },
+		new string[]{"empty.jpg", "empty.jpg", "empty.jpg", "red.jpg",   "empty.jpg", "empty.jpg", "empty.jpg" },
+	};
+
+    private WeatherForecast[]? forecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate asynchronous loading to demonstrate streaming rendering
+        await Task.Delay(500);
+
+        var startDate = DateOnly.FromDateTime(DateTime.Now);
+        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
+        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
+        {
+            Date = startDate.AddDays(index),
+            TemperatureC = Random.Shared.Next(-20, 55),
+            Summary = summaries[Random.Shared.Next(summaries.Length)]
+        }).ToArray();
+    }
+
+    private class WeatherForecast
+    {
+        public DateOnly Date { get; set; }
+        public int TemperatureC { get; set; }
+        public string? Summary { get; set; }
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
+}
