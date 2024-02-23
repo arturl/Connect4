@@ -5,22 +5,27 @@
 
 <h1>Connect4</h1>
 
-<table class="table">
-	<style>
-		table,
-		td,
-		th {
-			border: 5px solid;
-		}
+<style>
+    table,
+    td,
+    th {
+        border: 3px solid #777;
+    }
 
-		table {
-			text-align: center;
-		}
-	</style>
+    th {
+        background-color: #04AA6D;
+    }
+
+    table {
+        text-align: center;
+    }
+</style>
+
+<table class="table">
 
 	<thead>
 		<tr>
-			<th>0</th>
+            <th>0</th>
 			<th>1</th>
 			<th>2</th>
 			<th>3</th>
@@ -57,24 +62,42 @@
 <h2>@GameStatus</h2>
 <h3>@GameHistory</h3>
 
-<EditForm EditContext="editContext" OnSubmit="Submit" FormName="Starship4">
-	<DataAnnotationsValidator />
-	<div>
-		<button class="btn btn-primary">Start new game</button>
-		<label>
-			Difficulty level:
-			<InputNumber @bind-Value="Model!.Level" />
-		</label>
-	</div>
-</EditForm>
+<table>
+    <thead>
+        <tr>
+            <td>
+                <EditForm EditContext="editContext" OnSubmit="Submit" FormName="Starship4">
+                    <DataAnnotationsValidator />
+                    <div>
+                        <button class="btn btn-primary">Start new game</button>
+                        <label>
+                            Difficulty level:
+                            <InputNumber @bind-Value="Model!.Level" min="0" max="20" />
+                        </label>
+                    </div>
+                </EditForm>
+            </td>
+            <td>
+                <button disabled=@(undoButtonDisabled) class="btn btn-primary" @onclick="ButtonUndo">Undo last move</button>
+            </td>
+        </tr>
+    </thead>
+</table>
 
 @code {
+
+    struct MoveEntry
+    {
+        public Connect4AIEngine.Disk Player;
+        public int Move;
+    }
 
 	private int Level = 7;
 
 	private string GameStatus = "Ready to start a new game!";
-	private string GameHistory = "";
+	private string GameHistory = "😊";
 	private bool placeButtonsDisabled = true;
+	private bool undoButtonDisabled = true;
 
 	private Task Button0() => PressButton(0);
 	private Task Button1() => PressButton(1);
@@ -84,8 +107,65 @@
 	private Task Button5() => PressButton(5);
 	private Task Button6() => PressButton(6);
 
+	private Stack<MoveEntry> moves = new Stack<MoveEntry>();
+
 	private Connect4AIEngine.Board board = null;
 	Connect4AIEngine.Disk nextToPlay = Connect4AIEngine.Disk.Blue;
+
+    private async Task Submit()
+    {
+        if (editContext != null && editContext.Validate())
+        {
+            if (editContext.Model is StartGameForm form)
+            {
+                this.Level = form.Level;
+            }
+            this.GameStatus = "New game started. You play blue, AI plays red. Make your move!";
+            this.GameHistory = "";
+            moves.Clear();
+            board = new Connect4AIEngine.Board();
+            nextToPlay = Connect4AIEngine.Disk.Blue;
+            UpdateBoard();
+            placeButtonsDisabled = false;
+            undoButtonDisabled = true;
+        }
+        else
+        {
+            this.GameStatus = "Level incorrect, new game not started";
+            if (editContext.Model is StartGameForm form)
+            {
+                form.Level = this.Level;
+            }
+        }
+    }
+
+    private void ButtonUndo()
+    {
+        if(moves.Any())
+        {
+            var lastMove = moves.Pop();
+            placeButtonsDisabled = false;
+
+            if(lastMove.Player == Connect4AIEngine.Disk.Red && moves.Any())
+            {
+                lastMove = moves.Pop();
+            }
+
+            nextToPlay = Connect4AIEngine.Disk.Blue;
+            board = new Connect4AIEngine.Board();
+            foreach(var entry in moves.Reverse())
+            {
+                board.DropDiskAt(entry.Player, entry.Move);
+            }
+            GameStatus = $"You took back your move {lastMove.Move}.";
+            UpdateBoard();
+        }
+
+        if(!moves.Any())
+        {
+            undoButtonDisabled = true;
+        }
+    }
 
 	private async Task PressButton(int move)
 	{
@@ -100,9 +180,12 @@
 		{
 			placeButtonsDisabled = true;
 
+			undoButtonDisabled = false;
+
+            moves.Push(new MoveEntry{Player = nextToPlay, Move = move});
+
 			board.DropDiskAt(nextToPlay, move);
 			UpdateBoard();
-			UpdateGameHistory(nextToPlay, move);
 
 			Connect4AIEngine.Disk winner = Connect4AIEngine.Disk.Empty;
 			string direction = string.Empty;
@@ -132,7 +215,7 @@
 					var evalResultWithTimer = Connect4AIEngine.GameEngine.NegaMax(board, nextToPlay, this.Level);
 					move = evalResultWithTimer.evalResult.Move;
 
-					GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime.TotalMicroseconds} ms. ";
+					GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime.TotalMilliseconds} ms. ";
 
 					if(evalResultWithTimer.forcedMove)
 					{
@@ -150,9 +233,9 @@
 						}
 					}
 
+					moves.Push(new MoveEntry { Player = nextToPlay, Move = move });
 					board.DropDiskAt(nextToPlay, move);
 					UpdateBoard();
-					UpdateGameHistory(nextToPlay, move);
 
 					winner = Connect4AIEngine.Disk.Empty;
 					isWinReached = board.IsWinReached(ref winner, ref direction);
@@ -170,7 +253,6 @@
 					}
 					else
 					{
-						nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
 						if (!board.GetAvailableMovesForPlayer().Any())
 						{
 							this.GameStatus = "Game over - no more moves";
@@ -180,34 +262,41 @@
 							placeButtonsDisabled = false;
 						}
 					}
+
+                    nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
+
 				}
 			}
 		}
 	}
 
-	private void UpdateGameHistory(Connect4AIEngine.Disk player, int move)
-	{
-		var newVal = $"{Connect4AIEngine.Board.GetDiskColorLetter(player)}{move}";
-		GameHistory = GameHistory == "" ? $"{newVal}" : $"{GameHistory}{newVal}";
-	}
+    private void UpdateGameHistory()
+    {
+        GameHistory = "";
+        foreach(var entry in moves)
+        {
+            GameHistory = $"{GameHistory}{Connect4AIEngine.Board.GetDiskColorLetter(entry.Player)}{entry.Move}";
+        }
+    }
 
-	private void UpdateBoard()
-	{
-		int irow = 0;
-		foreach (var row in data)
-		{
-			for (int i = 0; i < 7; i++)
-			{
-				switch (board[i,irow])
-				{
-					case Connect4AIEngine.Disk.Blue : row[i] = "blue.jpg"; break;
-					case Connect4AIEngine.Disk.Red: row[i] = "red.jpg"; break;
-					default: row[i] = "empty.jpg"; break;
-				}
-			}
-			irow++;
-		}
-	}
+    private void UpdateBoard()
+    {
+        int irow = 0;
+        foreach (var row in data)
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                switch (board[i,irow])
+                {
+                    case Connect4AIEngine.Disk.Blue : row[i] = "blue.jpg"; break;
+                    case Connect4AIEngine.Disk.Red: row[i] = "red.jpg"; break;
+                    default: row[i] = "empty.jpg"; break;
+                }
+            }
+            irow++;
+        }
+        UpdateGameHistory();
+    }
 
 	private List<string[]> data = new List<String[]> { 
 		new string[7],
@@ -222,31 +311,6 @@
 
 	[SupplyParameterFromForm]
 	private StartGameForm? Model { get; set; }
-
-	private async Task Submit()
-	{
-		if (editContext != null && editContext.Validate())
-		{
-			if (editContext.Model is StartGameForm form)
-			{
-				this.Level = form.Level;
-			}
-			this.GameStatus = "New game started. You play blue, AI plays red. Make your move!";
-			this.GameHistory = "";
-			board = new Connect4AIEngine.Board();
-			nextToPlay = Connect4AIEngine.Disk.Blue;
-			UpdateBoard();
-			placeButtonsDisabled = false;
-		}
-		else
-		{
-			this.GameStatus = "Level incorrect, new game not started";
-			if (editContext.Model is StartGameForm form)
-			{
-				form.Level = this.Level;
-			}
-		}
-	}
 
 	protected override async Task OnInitializedAsync()
 	{
