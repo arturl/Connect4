@@ -5,11 +5,12 @@ namespace Connect4AIEngine
 {
     public class GameEngine
     {
+		public const int WinValue = 100;
         public static EvalResult GetBestMoveBasic(Board board, Disk disk)
         {
             // Level 1: 1 move
 
-            var possible_moves = board.GetAvailableMovesForPlayer(disk);
+            var possible_moves = board.GetAvailableMovesForPlayer();
 
             foreach (var col in possible_moves)
             {
@@ -22,7 +23,7 @@ namespace Connect4AIEngine
                 if (newBoard.IsWinReached(ref possibleWinner, ref dummy))
                 {
                     // I will win if I place here, yay!
-                    return new EvalResult { Move = col, Score = 1 };
+                    return new EvalResult { Move = col, Score = WinValue };
                 }
 
                 // Will the opponent win if they place there?
@@ -32,12 +33,12 @@ namespace Connect4AIEngine
                 if (newBoard2.IsWinReached(ref possibleWinner, ref dummy))
                 {
                     // don't let them - place there myself
-                    return new EvalResult { Move = col, Score = -1 };
+                    return new EvalResult { Move = col, Score = -WinValue };
                 }
             }
 
             // More analysis needed
-            return new EvalResult { Move = -1, Score = -1 };
+            return new EvalResult { Move = -1, Score = 0 };
         }
 
         public struct EvalResult
@@ -62,7 +63,8 @@ namespace Connect4AIEngine
             if (simple.Move == -1)
             {
                 // Need full analysis
-                EvalResult evalResult = NegaMaxWorker(board, color, depth, -100, 100);
+                EvalResult evalResult = NegaMaxWorker(board, color, depth, -999, 999);
+
                 result.evalResult = evalResult;
                 result.elapsedTime = stopWatch.Elapsed;
                 result.forcedMove = false;
@@ -83,17 +85,10 @@ namespace Connect4AIEngine
             bool isWinReached = board.IsWinReached(ref winner, ref dummy);
             if (isWinReached)
             {
-                if (winner == player) return 1;
-                return -1;
+                if (winner == player) return WinValue;
+                return - WinValue;
             }
             return 0;
-        }
-
-        private static int EvalForOrdering(Board board, int move, Disk color)
-        {
-            var child = board.Clone();
-            child.DropDiskAt(color, move);
-            return Eval(board, color);
         }
 
         private static int EvalForOrdering2(Board board, int move, Disk color)
@@ -104,12 +99,12 @@ namespace Connect4AIEngine
 
         private static void OrderMoves(Board board, List<int> moves, Disk color)
         {
-            moves = moves.OrderBy(move => EvalForOrdering2(board, move, color)).ToList<int>();
+            moves = [.. moves.OrderBy(move => EvalForOrdering2(board, move, color))];
         }
 
         private static EvalResult NegaMaxWorker(Board board, Disk color, int depth, int alpha, int beta)
         {
-            var possible_moves = board.GetAvailableMovesForPlayer(color);
+            var possible_moves = board.GetAvailableMovesForPlayer();
 
             bool terminate;
 
@@ -150,7 +145,7 @@ namespace Connect4AIEngine
                 return new EvalResult { Score = score, Move = possible_moves[index] };
             }
 
-            var value = -100;
+            var value = -999;
             int best_move = -1;
 
             // OrderMoves(board, possible_moves, color);

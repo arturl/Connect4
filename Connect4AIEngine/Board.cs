@@ -323,7 +323,7 @@ namespace Connect4AIEngine
             return false;
         }
 
-        public List<int> GetAvailableMovesForPlayer(Disk not_used)
+        public List<int> GetAvailableMovesForPlayer()
         {
             var possibleMoves = new List<int>();
             int[] positionsInCertainCleverOrder = [3, 2, 4, 1, 5, 0, 6];
@@ -332,6 +332,20 @@ namespace Connect4AIEngine
                 if (this[col, 0] == Disk.Empty) possibleMoves.Add(col);
             }
             return possibleMoves;
+        }
+
+        public List<int> GetAvailableMovesExcludingWins()
+        {
+            Disk winner = Disk.Empty;
+            string dummy = string.Empty;
+            if (IsWinReached(ref winner, ref dummy))
+            {
+                return [];
+            }
+            else
+            {
+                return GetAvailableMovesForPlayer();
+            }
         }
     }
 }

@@ -89,7 +89,7 @@
 	{
 		await Task.CompletedTask;
 
-		var availableMoves = board.GetAvailableMovesForPlayer(Connect4AIEngine.Disk.Empty);
+		var availableMoves = board.GetAvailableMovesForPlayer();
 		if (!availableMoves.Contains(move))
 		{
 			GameStatus = $"Choice {move} is incorrect, try again";
@@ -120,7 +120,7 @@
 			{
 				nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
 				this.GameStatus = "Analyzing...";
-				if (!board.GetAvailableMovesForPlayer(nextToPlay).Any())
+				if (!board.GetAvailableMovesForPlayer().Any())
 				{
 					this.GameStatus = "Game over - no more moves";
 				}
@@ -167,7 +167,7 @@
 					else
 					{
 						nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
-						if (!board.GetAvailableMovesForPlayer(nextToPlay).Any())
+						if (!board.GetAvailableMovesForPlayer().Any())
 						{
 							this.GameStatus = "Game over - no more moves";
 						}

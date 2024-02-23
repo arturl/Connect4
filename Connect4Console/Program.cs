@@ -58,14 +58,14 @@ namespace Connect4Console
 
                 board.PrintToConsole();
 
-                EvalResult evalResult;
+                EvalResultWithTime evalResult;
 
                 using (var timer = new AITimer())
                 {
                     evalResult = GameEngine.NegaMax(board, Disk.Red, 12);
                 }
 
-                Console.WriteLine($"Move={evalResult.Move}, Score={evalResult.Score}");
+                Console.WriteLine($"Move={evalResult.evalResult.Move}, Score={evalResult.evalResult.Score}");
 
                 Disk winner = Disk.Empty;
                 string direction = string.Empty;
@@ -74,6 +74,18 @@ namespace Connect4Console
                 return;
             }
 #endif
+
+#if true
+            board[0, 0] = Disk.Empty; board[1, 0] = Disk.Empty; board[2, 0] = Disk.Red;   board[3, 0] = Disk.Red;   board[4, 0] = Disk.Empty; board[5, 0] = Disk.Empty; board[6, 0] = Disk.Empty;
+            board[0, 1] = Disk.Empty; board[1, 1] = Disk.Empty; board[2, 1] = Disk.Red;   board[3, 1] = Disk.Blue;  board[4, 1] = Disk.Empty; board[5, 1] = Disk.Empty; board[6, 1] = Disk.Empty;
+            board[0, 2] = Disk.Red;   board[1, 2] = Disk.Empty; board[2, 2] = Disk.Blue;  board[3, 2] = Disk.Red;   board[4, 2] = Disk.Empty; board[5, 2] = Disk.Red;   board[6, 2] = Disk.Empty;
+            board[0, 3] = Disk.Blue;  board[1, 3] = Disk.Empty; board[2, 3] = Disk.Red;   board[3, 3] = Disk.Blue;  board[4, 3] = Disk.Empty; board[5, 3] = Disk.Blue;  board[6, 3] = Disk.Empty;
+            board[0, 4] = Disk.Blue;  board[1, 4] = Disk.Empty; board[2, 4] = Disk.Red;   board[3, 4] = Disk.Red; ; board[4, 4] = Disk.Empty; board[5, 4] = Disk.Blue; board[6, 4] = Disk.Blue;
+            board[0, 5] = Disk.Blue;  board[1, 5] = Disk.Blue;  board[2, 5] = Disk.Red;   board[3, 5] = Disk.Blue;  board[4, 5] = Disk.Empty; board[5, 5] = Disk.Blue;  board[6, 5] = Disk.Red;;
+
+            nextToPlay = Disk.Red;
+#endif
+
             Stack<Board> undoBuffer = new Stack<Board>();
 
             while (true)
@@ -91,7 +103,7 @@ namespace Connect4Console
                 }
                 else
                 {
-                    if(!board.GetAvailableMovesForPlayer(nextToPlay).Any())
+                    if(!board.GetAvailableMovesForPlayer().Any())
                     {
                         Console.WriteLine("Game over - no more moves");
                         break;
@@ -108,26 +120,26 @@ namespace Connect4Console
                         // AI plays for Red
                         //move = GameEngine.GetBestMoveBasic(board, nextToPlay);
 
-                        var evalResultWithTimer = GameEngine.NegaMax(board, nextToPlay, 12);
+                        var evalResultWithTimer = GameEngine.NegaMax(board, nextToPlay, 10);
                         move = evalResultWithTimer.evalResult.Move;
 
                         Console.WriteLine($"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime}. ");
 
-						if (evalResultWithTimer.forcedMove)
-						{
-							Console.WriteLine("Forced move.");
-						}
-						else
-						{
-							if (evalResultWithTimer.evalResult.Score > 0)
-							{
-								Console.WriteLine("AI will win");
-							}
-							else if (evalResultWithTimer.evalResult.Score < 0)
-							{
-								Console.WriteLine("AI might lose");
-							}
-						}
+                        if (evalResultWithTimer.forcedMove)
+                        {
+                            Console.WriteLine("Forced move.");
+                        }
+                        else
+                        {
+                            if (evalResultWithTimer.evalResult.Score > 0)
+                            {
+                                Console.WriteLine($"AI will win.");
+                            }
+                            else if (evalResultWithTimer.evalResult.Score < 0)
+                            {
+                                Console.WriteLine($"AI might lose if you play right.");
+                            }
+                        }
                     }
                     else
                     {
@@ -156,7 +168,7 @@ namespace Connect4Console
                             break;
                         }
 
-                        var availableMoves = board.GetAvailableMovesForPlayer(Disk.Empty);
+                        var availableMoves = board.GetAvailableMovesForPlayer();
                         if(!availableMoves.Contains(move))
                         {
                             Console.WriteLine($"Choice {move} is incorrect, try again");
