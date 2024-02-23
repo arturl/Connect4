@@ -93,7 +93,17 @@ namespace Connect4AIEngine
             }
         }
 
-        public void PrintToConsole()
+		public static string GetDiskColorLetter(Disk d)
+		{
+			switch (d)
+			{
+				case Disk.Red: return "R";
+				case Disk.Blue: return "B";
+				default: return " ";
+			}
+		}
+
+		public void PrintToConsole()
         {
             Console.WriteLine(VisualizeAsString());
         }
