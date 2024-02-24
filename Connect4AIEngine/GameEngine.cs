@@ -65,6 +65,20 @@ namespace Connect4AIEngine
                 // Need full analysis
                 EvalResult evalResult = NegaMaxWorker(board, color, depth, -999, 999);
 
+                if(evalResult.Score < 0 && depth > 0)
+                {
+                    // AI might lose. Try a move that will not lose immediately
+                    for (var lowerLevel = depth-1; lowerLevel >0; lowerLevel--)
+                    {
+                        var lowerDepthevalResult = NegaMaxWorker(board, color, lowerLevel, -999, 999);
+                        if (lowerDepthevalResult.Score >= 0)
+                        {
+                            evalResult.Move = lowerDepthevalResult.Move;
+                            break;
+                        }
+                    }
+                }
+
                 result.evalResult = evalResult;
                 result.elapsedTime = stopWatch.Elapsed;
                 result.forcedMove = false;
