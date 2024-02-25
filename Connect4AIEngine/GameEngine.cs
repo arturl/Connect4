@@ -65,7 +65,7 @@ namespace Connect4AIEngine
                 // Need full analysis
                 EvalResult evalResult = NegaMaxWorker(board, color, depth, -999, 999);
 
-                if(evalResult.Score < 0 && depth > 0)
+                if(evalResult.Score == -WinValue && depth > 0)
                 {
                     // AI might lose. Try a move that will not lose immediately
                     for (var lowerLevel = depth-1; lowerLevel >0; lowerLevel--)
@@ -102,7 +102,17 @@ namespace Connect4AIEngine
                 if (winner == player) return WinValue;
                 return - WinValue;
             }
-            return 0;
+
+            int deadlySpotsForPlayer = 0;
+            int deadlySpotsForOpponent = 0;
+            Disk opponent = player == Disk.Blue ? Disk.Red : Disk.Blue;
+            for(int col=0; col<7; col++)
+            {
+                if (board.IsDeadlySpotFor(player, col)) deadlySpotsForPlayer++;
+                if (board.IsDeadlySpotFor(opponent, col)) deadlySpotsForOpponent++;
+            }
+
+            return deadlySpotsForOpponent - deadlySpotsForPlayer;
         }
 
         private static int EvalForOrdering2(Board board, int move, Disk color)

@@ -357,5 +357,94 @@ namespace Connect4AIEngine
                 return GetAvailableMovesForPlayer();
             }
         }
+
+        public int CountOfPositionsTaken()
+        {
+            int count = 0;
+            for (int col = 0; col < Width; col++)
+            {
+                for (int row = 0; row < Height; row++)
+                {
+                    if (field[col, row] != Disk.Empty) count++;
+                }
+            }
+
+            return count;
+        }
+
+        private int FindRowForColumn(int col)
+        {
+            if (field[col, 5] == Disk.Empty) return 5;
+            if (field[col, 4] == Disk.Empty) return 4;
+            if (field[col, 3] == Disk.Empty) return 3;
+            if (field[col, 2] == Disk.Empty) return 2;
+            if (field[col, 1] == Disk.Empty) return 1;
+            if (field[col, 0] == Disk.Empty) return 0;
+            return -1;
+        }
+
+        private bool CheckIfDisk(int col, int row, Disk player)
+        {
+            if(col >=0 && col < 7 && row > 0 && row < 6)
+            {
+                return field[col, row] == player;
+            }
+            return false;
+        }
+
+        public bool IsDeadlySpotFor(Disk player, int col)
+        {
+            // Find row for this column
+            int row = FindRowForColumn(col);
+            if (row <= 0) return false;
+            Disk existingPiece = field[col, row];
+            if (existingPiece != Disk.Empty) return false;
+
+            try
+            {
+                field[col, row] = player;
+                Disk opponent = player == Disk.Blue ? Disk.Red : Disk.Blue;
+                int rowAbove = row - 1;
+                field[col, rowAbove] = opponent;
+
+                // Check horizontal
+                int horizontalCount = 1;
+                if (CheckIfDisk(col + 1, rowAbove, opponent)) horizontalCount++;
+                if (CheckIfDisk(col + 2, rowAbove, opponent)) horizontalCount++;
+                if (CheckIfDisk(col + 3, rowAbove, opponent)) horizontalCount++;
+                if (CheckIfDisk(col - 1, rowAbove, opponent)) horizontalCount++;
+                if (CheckIfDisk(col - 2, rowAbove, opponent)) horizontalCount++;
+                if (CheckIfDisk(col - 3, rowAbove, opponent)) horizontalCount++;
+                if (horizontalCount >= 4) return true;
+
+                // Check main diagonal
+                int mainDiagonalCount = 1;
+                if (CheckIfDisk(col + 1, rowAbove + 1, opponent)) mainDiagonalCount++;
+                if (CheckIfDisk(col + 2, rowAbove + 2, opponent)) mainDiagonalCount++;
+                if (CheckIfDisk(col + 3, rowAbove + 3, opponent)) mainDiagonalCount++;
+                if (CheckIfDisk(col - 1, rowAbove - 1, opponent)) mainDiagonalCount++;
+                if (CheckIfDisk(col - 2, rowAbove - 2, opponent)) mainDiagonalCount++;
+                if (CheckIfDisk(col - 3, rowAbove - 3, opponent)) mainDiagonalCount++;
+                if (mainDiagonalCount >= 4) return true;
+
+                // Check secondary diagonal
+                int secondaryDiagonalCount = 1;
+                if (CheckIfDisk(col + 1, rowAbove - 1, opponent)) secondaryDiagonalCount++;
+                if (CheckIfDisk(col + 2, rowAbove - 2, opponent)) secondaryDiagonalCount++;
+                if (CheckIfDisk(col + 3, rowAbove - 3, opponent)) secondaryDiagonalCount++;
+                if (CheckIfDisk(col - 1, rowAbove + 1, opponent)) secondaryDiagonalCount++;
+                if (CheckIfDisk(col - 2, rowAbove + 2, opponent)) secondaryDiagonalCount++;
+                if (CheckIfDisk(col - 3, rowAbove + 3, opponent)) secondaryDiagonalCount++;
+                if (secondaryDiagonalCount >= 4) return true;
+
+                return false;
+            }
+            finally
+            {
+                // Restore board
+                field[col, row] = Disk.Empty;
+                field[col, row-1] = Disk.Empty;
+            }
+        }
     }
 }

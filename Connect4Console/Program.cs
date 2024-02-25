@@ -1,5 +1,7 @@
 ﻿using Connect4AIEngine;
 using System.Diagnostics;
+using System.Net;
+using System.Security.Principal;
 using static Connect4AIEngine.GameEngine;
 
 namespace Connect4Console
@@ -38,6 +40,25 @@ namespace Connect4Console
             var board = new Board();
             var nextToPlay = Disk.Blue;
 #if false
+            board.DropDiskAt(Disk.Red, 2);
+            board.DropDiskAt(Disk.Red, 3);
+
+            //board.DropDiskAt(Disk.Blue, 0);
+            board.DropDiskAt(Disk.Blue, 2);
+            board.DropDiskAt(Disk.Blue, 2);
+            board.DropDiskAt(Disk.Blue, 3);
+            board.DropDiskAt(Disk.Blue, 3);
+            board.DropDiskAt(Disk.Blue, 3);
+
+            board.PrintToConsole();
+
+            bool isDeadly = board.IsDeadlySpotFor(Disk.Red, 1);
+
+            Console.WriteLine(isDeadly);
+#endif
+
+
+#if false
             {
                 nextToPlay = Disk.Red;
 
@@ -75,7 +96,7 @@ namespace Connect4Console
             }
 #endif
 
-#if true
+#if false
             board[0, 0] = Disk.Empty; board[1, 0] = Disk.Empty; board[2, 0] = Disk.Red;   board[3, 0] = Disk.Red;   board[4, 0] = Disk.Empty; board[5, 0] = Disk.Empty; board[6, 0] = Disk.Empty;
             board[0, 1] = Disk.Empty; board[1, 1] = Disk.Empty; board[2, 1] = Disk.Red;   board[3, 1] = Disk.Blue;  board[4, 1] = Disk.Empty; board[5, 1] = Disk.Empty; board[6, 1] = Disk.Empty;
             board[0, 2] = Disk.Red;   board[1, 2] = Disk.Empty; board[2, 2] = Disk.Blue;  board[3, 2] = Disk.Red;   board[4, 2] = Disk.Empty; board[5, 2] = Disk.Red;   board[6, 2] = Disk.Empty;
@@ -120,10 +141,10 @@ namespace Connect4Console
                         // AI plays for Red
                         //move = GameEngine.GetBestMoveBasic(board, nextToPlay);
 
-                        var evalResultWithTimer = GameEngine.NegaMax(board, nextToPlay, 10);
+                        var evalResultWithTimer = GameEngine.NegaMax(board, nextToPlay, 12);
                         move = evalResultWithTimer.evalResult.Move;
 
-                        Console.WriteLine($"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime}. ");
+                        Console.WriteLine($"AI chose {evalResultWithTimer.evalResult.Move}.");
 
                         if (evalResultWithTimer.forcedMove)
                         {
@@ -131,11 +152,12 @@ namespace Connect4Console
                         }
                         else
                         {
-                            if (evalResultWithTimer.evalResult.Score > 0)
+                            Console.WriteLine($"Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {(int)evalResultWithTimer.elapsedTime.TotalMilliseconds} ms. ");
+                            if (evalResultWithTimer.evalResult.Score == GameEngine.WinValue)
                             {
                                 Console.WriteLine($"AI will win.");
                             }
-                            else if (evalResultWithTimer.evalResult.Score < 0)
+                            else if (evalResultWithTimer.evalResult.Score == -GameEngine.WinValue)
                             {
                                 Console.WriteLine($"AI might lose if you play right.");
                             }

@@ -23,40 +23,40 @@
 
 <table class="table">
 
-	<thead>
-		<tr>
+    <thead>
+        <tr>
             <th>0</th>
-			<th>1</th>
-			<th>2</th>
-			<th>3</th>
-			<th>4</th>
-			<th>5</th>
-			<th>6</th>
-		</tr>
-		<tr>
-			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button0">Drop disk here</button></td>
-			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button1">Drop disk here</button></td>
-			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button2">Drop disk here</button></td>
-			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button3">Drop disk here</button></td>
-			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button4">Drop disk here</button></td>
-			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button5">Drop disk here</button></td>
-			<td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button6">Drop disk here</button></td>
-		</tr>
-	</thead>
-	<tbody>
-		@foreach (var row in data)
-		{
-			<tr>
-				<td><img src=@row[0]></td>
-				<td><img src=@row[1]></td>
-				<td><img src=@row[2]></td>
-				<td><img src=@row[3]></td>
-				<td><img src=@row[4]></td>
-				<td><img src=@row[5]></td>
-				<td><img src=@row[6]></td>
-			</tr>
-		}
-	</tbody>
+            <th>1</th>
+            <th>2</th>
+            <th>3</th>
+            <th>4</th>
+            <th>5</th>
+            <th>6</th>
+        </tr>
+        <tr>
+            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button0">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button1">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button2">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button3">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button4">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button5">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button6">Drop disk here</button></td>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in data)
+        {
+            <tr>
+                <td><img src=@row[0]></td>
+                <td><img src=@row[1]></td>
+                <td><img src=@row[2]></td>
+                <td><img src=@row[3]></td>
+                <td><img src=@row[4]></td>
+                <td><img src=@row[5]></td>
+                <td><img src=@row[6]></td>
+            </tr>
+        }
+    </tbody>
 </table>
 
 <h2>@GameStatus</h2>
@@ -92,25 +92,25 @@
         public int Move;
     }
 
-	private int Level = 7;
+    private int Level = 7;
 
-	private string GameStatus = "Ready to start a new game!";
-	private string GameHistory = "😊";
-	private bool placeButtonsDisabled = true;
-	private bool undoButtonDisabled = true;
+    private string GameStatus = "Ready to start a new game!";
+    private string GameHistory = "😊";
+    private bool placeButtonsDisabled = true;
+    private bool undoButtonDisabled = true;
 
-	private Task Button0() => PressButton(0);
-	private Task Button1() => PressButton(1);
-	private Task Button2() => PressButton(2);
-	private Task Button3() => PressButton(3);
-	private Task Button4() => PressButton(4);
-	private Task Button5() => PressButton(5);
-	private Task Button6() => PressButton(6);
+    private Task Button0() => PressButton(0);
+    private Task Button1() => PressButton(1);
+    private Task Button2() => PressButton(2);
+    private Task Button3() => PressButton(3);
+    private Task Button4() => PressButton(4);
+    private Task Button5() => PressButton(5);
+    private Task Button6() => PressButton(6);
 
-	private Stack<MoveEntry> moves = new Stack<MoveEntry>();
+    private Stack<MoveEntry> moves = new Stack<MoveEntry>();
 
-	private Connect4AIEngine.Board board = null;
-	Connect4AIEngine.Disk nextToPlay = Connect4AIEngine.Disk.Blue;
+    private Connect4AIEngine.Board board = null;
+    Connect4AIEngine.Disk nextToPlay = Connect4AIEngine.Disk.Blue;
 
     private async Task Submit()
     {
@@ -137,6 +137,11 @@
                 form.Level = this.Level;
             }
         }
+
+        string hostName = System.Net.Dns.GetHostName(); // Retrive the Name of HOST
+        string myIP = System.Net.Dns.GetHostByName(hostName).AddressList[0].ToString();
+
+        this.GameStatus = $"hostname={hostName}, IP={myIP}.";
     }
 
     private void ButtonUndo()
@@ -167,108 +172,112 @@
         }
     }
 
-	private async Task PressButton(int move)
-	{
-		await Task.CompletedTask;
+    private async Task PressButton(int move)
+    {
+        await Task.CompletedTask;
 
-		var availableMoves = board.GetAvailableMovesForPlayer();
-		if (!availableMoves.Contains(move))
-		{
-			GameStatus = $"Choice {move} is incorrect, try again";
-		}
-		else
-		{
-			placeButtonsDisabled = true;
-
-			undoButtonDisabled = false;
+        var availableMoves = board.GetAvailableMovesForPlayer();
+        if (!availableMoves.Contains(move))
+        {
+            GameStatus = $"Choice {move} is incorrect, try again";
+        }
+        else
+        {
+            placeButtonsDisabled = true;
+            undoButtonDisabled = false;
 
             moves.Push(new MoveEntry{Player = nextToPlay, Move = move});
 
-			board.DropDiskAt(nextToPlay, move);
-			UpdateBoard();
+            board.DropDiskAt(nextToPlay, move);
+            UpdateBoard();
 
-			Connect4AIEngine.Disk winner = Connect4AIEngine.Disk.Empty;
-			string direction = string.Empty;
-			bool isWinReached = board.IsWinReached(ref winner, ref direction);
+            Connect4AIEngine.Disk winner = Connect4AIEngine.Disk.Empty;
+            string direction = string.Empty;
+            bool isWinReached = board.IsWinReached(ref winner, ref direction);
 
-			if (isWinReached)
-			{
-				if(winner == nextToPlay)
-				{
-					GameStatus = $"Congratulations, you won the game! Winning direction: {direction}";
-				}
-				else
-				{
-					GameStatus = $"Error 1001";
-				}
-			}
-			else
-			{
-				nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
-				this.GameStatus = "Analyzing...";
-				if (!board.GetAvailableMovesForPlayer().Any())
-				{
-					this.GameStatus = "Game over - no more moves";
-				}
-				else
-				{
-					var evalResultWithTimer = Connect4AIEngine.GameEngine.NegaMax(board, nextToPlay, this.Level);
-					move = evalResultWithTimer.evalResult.Move;
+            if (isWinReached)
+            {
+                if(winner == nextToPlay)
+                {
+                    GameStatus = $"Congratulations, you won the game. Winning direction: {direction}";
+                }
+                else
+                {
+                    GameStatus = $"Error 1001";
+                }
+            }
+            else
+            {
+                nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
+                this.GameStatus = "Analyzing...";
 
-					GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {evalResultWithTimer.elapsedTime.TotalMilliseconds} ms. ";
+                // Delay to redraw
+                await Task.Delay(500);
 
-					if(evalResultWithTimer.forcedMove)
-					{
-						GameStatus += "Forced move.";
-					}
-					else
-					{
-						if (evalResultWithTimer.evalResult.Score > 0)
-						{
-							GameStatus += "AI will win";
-						}
-						else if (evalResultWithTimer.evalResult.Score < 0)
-						{
-							GameStatus += "AI might lose";
-						}
-					}
+                if (!board.GetAvailableMovesForPlayer().Any())
+                {
+                    this.GameStatus = "Game over - no more moves";
+                }
+                else
+                {
+                    var evalResultWithTimer = Connect4AIEngine.GameEngine.NegaMax(board, nextToPlay, this.Level);
+                    move = evalResultWithTimer.evalResult.Move;
 
-					moves.Push(new MoveEntry { Player = nextToPlay, Move = move });
-					board.DropDiskAt(nextToPlay, move);
-					UpdateBoard();
+                    GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. ";
 
-					winner = Connect4AIEngine.Disk.Empty;
-					isWinReached = board.IsWinReached(ref winner, ref direction);
+                    if(evalResultWithTimer.forcedMove)
+                    {
+                        GameStatus += "Forced move.";
+                    }
+                    else
+                    {
+                        GameStatus += $"Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {(int)evalResultWithTimer.elapsedTime.TotalMilliseconds} ms. ";
+                        if (evalResultWithTimer.evalResult.Score == Connect4AIEngine.GameEngine.WinValue)
+                        {
+                            GameStatus += "AI will win.";
+                        }
+                        else if (evalResultWithTimer.evalResult.Score == -Connect4AIEngine.GameEngine.WinValue)
+                        {
+                            GameStatus += "AI might lose if you play right.";
+                        }
+                    }
 
-					if (isWinReached)
-					{
-						if (winner == nextToPlay)
-						{
-							GameStatus = $"Game over! AI won the game! Winning direction: {direction}";
-						}
-						else
-						{
-							GameStatus = $"Error 1002";
-						}
-					}
-					else
-					{
-						if (!board.GetAvailableMovesForPlayer().Any())
-						{
-							this.GameStatus = "Game over - no more moves";
-						}
-						else
-						{
-							placeButtonsDisabled = false;
-						}
-					}
+                    moves.Push(new MoveEntry { Player = nextToPlay, Move = move });
+                    board.DropDiskAt(nextToPlay, move);
+                    UpdateBoard();
+
+                    winner = Connect4AIEngine.Disk.Empty;
+                    isWinReached = board.IsWinReached(ref winner, ref direction);
+
+                    if (isWinReached)
+                    {
+                        if (winner == nextToPlay)
+                        {
+                            GameStatus = $"Game over. AI won the game. Winning direction: {direction}";
+                        }
+                        else
+                        {
+                            GameStatus = $"Error 1002";
+                        }
+                    }
+                    else
+                    {
+                        if (!board.GetAvailableMovesForPlayer().Any())
+                        {
+                            this.GameStatus = "Game over - no more moves";
+                        }
+                        else
+                        {
+                            placeButtonsDisabled = false;
+                        }
+                    }
 
                     nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
 
-				}
-			}
-		}
-	}
+                }
+            }
+        }
+    }
 
     private void UpdateGameHistory()
     {
@@ -298,35 +307,35 @@
         UpdateGameHistory();
     }
 
-	private List<string[]> data = new List<String[]> { 
-		new string[7],
-		new string[7],
-		new string[7],
-		new string[7],
-		new string[7],
-		new string[7],
-	};
+    private List<string[]> data = new List<String[]> { 
+        new string[7],
+        new string[7],
+        new string[7],
+        new string[7],
+        new string[7],
+        new string[7],
+    };
 
-	private EditContext? editContext;
+    private EditContext? editContext;
 
-	[SupplyParameterFromForm]
-	private StartGameForm? Model { get; set; }
+    [SupplyParameterFromForm]
+    private StartGameForm? Model { get; set; }
 
-	protected override async Task OnInitializedAsync()
-	{
-		Model ??=
-			new()
-				{
-					Level = this.Level,
-				};
-		editContext = new(Model);
+    protected override async Task OnInitializedAsync()
+    {
+        Model ??=
+            new()
+                {
+                    Level = this.Level,
+                };
+        editContext = new(Model);
 
-		foreach(var row in data)
-		{
-			for(int i=0; i<7; i++)
-			{
-				row[i] = "empty.jpg";
-			}
-		}
-	}
+        foreach(var row in data)
+        {
+            for(int i=0; i<7; i++)
+            {
+                row[i] = "empty.jpg";
+            }
+        }
+    }
 }
