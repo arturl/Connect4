@@ -33,68 +33,34 @@ namespace Connect4Console
         }
     }
 
+    internal class ConsoleProgressReport : IProgressReport
+    {
+        int total;
+        int current;
+        public void TotalMoves(int moves)
+        {
+            this.total = moves;
+            this.current = 0;
+        }
+
+        public void UpdateProgress()
+        {
+            Console.Write(".");
+            this.current++;
+        }
+
+        public void EndProgress()
+        {
+            Console.WriteLine();
+        }
+    }
+
     internal class Program
     {
         static void Main(string[] args)
         {
             var board = new Board();
             var nextToPlay = Disk.Blue;
-#if false
-            board.DropDiskAt(Disk.Red, 2);
-            board.DropDiskAt(Disk.Red, 3);
-
-            //board.DropDiskAt(Disk.Blue, 0);
-            board.DropDiskAt(Disk.Blue, 2);
-            board.DropDiskAt(Disk.Blue, 2);
-            board.DropDiskAt(Disk.Blue, 3);
-            board.DropDiskAt(Disk.Blue, 3);
-            board.DropDiskAt(Disk.Blue, 3);
-
-            board.PrintToConsole();
-
-            bool isDeadly = board.IsDeadlySpotFor(Disk.Red, 1);
-
-            Console.WriteLine(isDeadly);
-#endif
-
-
-#if false
-            {
-                nextToPlay = Disk.Red;
-
-                //board[1, 5] = Disk.Blue;
-                //board[0, 5] = Disk.Blue;
-
-                board[2, 5] = Disk.Blue;
-                board[3, 5] = Disk.Blue;
-                board[3, 3] = Disk.Blue;
-
-                board[2, 4] = Disk.Red;
-                board[3, 4] = Disk.Red;
-                board[3, 2] = Disk.Red;
-
-                //board[4, 3] = Disk.Red;
-                //board[4, 4] = Disk.Red;
-                //board[4, 5] = Disk.Red;
-
-                board.PrintToConsole();
-
-                EvalResultWithTime evalResult;
-
-                using (var timer = new AITimer())
-                {
-                    evalResult = GameEngine.NegaMax(board, Disk.Red, 12);
-                }
-
-                Console.WriteLine($"Move={evalResult.evalResult.Move}, Score={evalResult.evalResult.Score}");
-
-                Disk winner = Disk.Empty;
-                string direction = string.Empty;
-                bool b = board.IsWinReached(ref winner, ref direction);
-
-                return;
-            }
-#endif
 
 #if false
             board[0, 0] = Disk.Empty; board[1, 0] = Disk.Empty; board[2, 0] = Disk.Red;   board[3, 0] = Disk.Red;   board[4, 0] = Disk.Empty; board[5, 0] = Disk.Empty; board[6, 0] = Disk.Empty;
@@ -124,7 +90,7 @@ namespace Connect4Console
                 }
                 else
                 {
-                    if(!board.GetAvailableMovesForPlayer().Any())
+                    if(!board.GetAvailableMoves().Any())
                     {
                         Console.WriteLine("Game over - no more moves");
                         break;
@@ -132,6 +98,7 @@ namespace Connect4Console
                 }
 
                 bool gotValidChoice = false;
+                var progress = new ConsoleProgressReport();
 
                 while (!gotValidChoice)
                 {
@@ -141,7 +108,7 @@ namespace Connect4Console
                         // AI plays for Red
                         //move = GameEngine.GetBestMoveBasic(board, nextToPlay);
 
-                        var evalResultWithTimer = GameEngine.NegaMax(board, nextToPlay, 12);
+                        var evalResultWithTimer = GameEngine.NegaMax(board, nextToPlay, 12, progress);
                         move = evalResultWithTimer.evalResult.Move;
 
                         Console.WriteLine($"AI chose {evalResultWithTimer.evalResult.Move}.");
@@ -190,7 +157,7 @@ namespace Connect4Console
                             break;
                         }
 
-                        var availableMoves = board.GetAvailableMovesForPlayer();
+                        var availableMoves = board.GetAvailableMoves();
                         if(!availableMoves.Contains(move))
                         {
                             Console.WriteLine($"Choice {move} is incorrect, try again");

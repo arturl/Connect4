@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +12,14 @@ namespace Connect4AIEngine
         Empty = 0,
         Red,
         Blue
+    }
+
+    public static class DiskMethods
+    {
+        public static Disk Opposite(this Disk disk)
+        {
+            return disk == Disk.Blue ? Disk.Red : Disk.Blue;
+        }
     }
 
     public class Board
@@ -31,6 +40,23 @@ namespace Connect4AIEngine
                 for (int row = 0; row < Height; row++)
                 {
                     field[col, row] = Disk.Empty;
+                }
+            }
+        }
+
+        public Board(string game)
+        {
+            for (int i = 0; i < game.Length; i++)
+            {
+                Disk player = game[i] == 'R' ? Disk.Red : game[i] == 'B' ? Disk.Blue : Disk.Empty;
+                if (i == game.Length - 1) break; // Error in game history
+                char colChar = game[i + 1];
+                if (Int32.TryParse(colChar.ToString(), out int col))
+                {
+                    if (col >= 0 && col < 7)
+                    {
+                        this.DropDiskAt(player, col);
+                    }
                 }
             }
         }
@@ -333,7 +359,7 @@ namespace Connect4AIEngine
             return false;
         }
 
-        public List<int> GetAvailableMovesForPlayer()
+        public List<int> GetAvailableMoves()
         {
             var possibleMoves = new List<int>();
             int[] positionsInCertainCleverOrder = [3, 2, 4, 1, 5, 0, 6];
@@ -354,7 +380,7 @@ namespace Connect4AIEngine
             }
             else
             {
-                return GetAvailableMovesForPlayer();
+                return GetAvailableMoves();
             }
         }
 
@@ -403,7 +429,7 @@ namespace Connect4AIEngine
             try
             {
                 field[col, row] = player;
-                Disk opponent = player == Disk.Blue ? Disk.Red : Disk.Blue;
+                Disk opponent = player.Opposite();
                 int rowAbove = row - 1;
                 field[col, rowAbove] = opponent;
 

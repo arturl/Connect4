@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34601.278
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Connect4Console", "Connect4Console.csproj", "{7C8D158E-F854-4479-99F7-AF2BD5291C58}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connect4Console", "Connect4Console.csproj", "{7C8D158E-F854-4479-99F7-AF2BD5291C58}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Connect4AIEngine", "..\Connect4AIEngine\Connect4AIEngine.csproj", "{AE14F22C-E81A-4F21-8681-4311CAA62EFB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConnectAITests", "..\ConnectAITests\ConnectAITests.csproj", "{C9C80B87-3389-4FD1-BFA3-3C054090735E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{AE14F22C-E81A-4F21-8681-4311CAA62EFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AE14F22C-E81A-4F21-8681-4311CAA62EFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AE14F22C-E81A-4F21-8681-4311CAA62EFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9C80B87-3389-4FD1-BFA3-3C054090735E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9C80B87-3389-4FD1-BFA3-3C054090735E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9C80B87-3389-4FD1-BFA3-3C054090735E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9C80B87-3389-4FD1-BFA3-3C054090735E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

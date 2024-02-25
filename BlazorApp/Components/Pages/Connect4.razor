@@ -60,6 +60,8 @@
 </table>
 
 <h2>@GameStatus</h2>
+<label for="file">Analysis progress:</label>
+<progress id="progressBar" value="@ProgressString" max="100"> 75% </progress>
 <h3>@GameHistory</h3>
 
 <table>
@@ -92,6 +94,63 @@
         public int Move;
     }
 
+    private string ProgressString = "0";
+
+    internal class AnalysisCancelledException : System.Exception
+    {
+        public AnalysisCancelledException(TimeSpan timespan) : base($"Analysis time exceeded {timespan}")
+        {
+        }
+    }
+
+    internal class BrowserProgressReport : Connect4AIEngine.IProgressReport
+    {
+        int total;
+        int current;
+        DateTime dt;
+        readonly TimeSpan maxAllowedTimeSpan = new TimeSpan(0, 1, 0);
+
+        BlazorApp.Components.Pages.Connect4 page;
+
+        public BrowserProgressReport(BlazorApp.Components.Pages.Connect4 page)
+        {
+            this.page = page;
+            page.ProgressString = "0";
+            dt = DateTime.Now;
+        }
+
+        public void TotalMoves(int moves)
+        {
+            this.total = moves;
+            this.current = 0;
+        }
+
+        public void UpdateProgress()
+        {
+            this.current++;
+            page.ProgressString = ((int)((double)current / total * 100.0)).ToString();
+
+            page.InvokeAsync(() =>
+            {
+                page.StateHasChanged();
+            });
+
+            if (DateTime.Now - dt > maxAllowedTimeSpan)
+            {
+                throw new AnalysisCancelledException(maxAllowedTimeSpan);
+            }
+        }
+
+        public void EndProgress()
+        {
+            page.ProgressString = "100";
+            page.InvokeAsync(() =>
+            {
+                page.StateHasChanged();
+            });
+        }
+    }
+
     private int Level = 7;
 
     private string GameStatus = "Ready to start a new game!";
@@ -110,6 +169,7 @@
     private Stack<MoveEntry> moves = new Stack<MoveEntry>();
 
     private Connect4AIEngine.Board board = null;
+
     Connect4AIEngine.Disk nextToPlay = Connect4AIEngine.Disk.Blue;
 
     private async Task Submit()
@@ -122,6 +182,7 @@
             }
             this.GameStatus = "New game started. You play blue, AI plays red. Make your move!";
             this.GameHistory = "";
+            this.ProgressString = "0";
             moves.Clear();
             board = new Connect4AIEngine.Board();
             nextToPlay = Connect4AIEngine.Disk.Blue;
@@ -140,7 +201,6 @@
 
         string hostName = System.Net.Dns.GetHostName(); // Retrive the Name of HOST
         string myIP = System.Net.Dns.GetHostByName(hostName).AddressList[0].ToString();
-
         this.GameStatus = $"hostname={hostName}, IP={myIP}.";
     }
 
@@ -174,9 +234,9 @@
 
     private async Task PressButton(int move)
     {
-        await Task.CompletedTask;
+        //await Task.CompletedTask;
 
-        var availableMoves = board.GetAvailableMovesForPlayer();
+        var availableMoves = board.GetAvailableMoves();
         if (!availableMoves.Contains(move))
         {
             GameStatus = $"Choice {move} is incorrect, try again";
@@ -187,6 +247,8 @@
             undoButtonDisabled = false;
 
             moves.Push(new MoveEntry{Player = nextToPlay, Move = move});
+
+            ProgressString = "0";
 
             board.DropDiskAt(nextToPlay, move);
             UpdateBoard();
@@ -208,72 +270,79 @@
             }
             else
             {
-                nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
+                nextToPlay = Connect4AIEngine.DiskMethods.Opposite(nextToPlay);
                 this.GameStatus = "Analyzing...";
 
                 // Delay to redraw
-                await Task.Delay(500);
+                await Task.Delay(100);
 
-                if (!board.GetAvailableMovesForPlayer().Any())
+                if (!board.GetAvailableMoves().Any())
                 {
                     this.GameStatus = "Game over - no more moves";
                 }
                 else
                 {
-                    var evalResultWithTimer = Connect4AIEngine.GameEngine.NegaMax(board, nextToPlay, this.Level);
-                    move = evalResultWithTimer.evalResult.Move;
-
-                    GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. ";
-
-                    if(evalResultWithTimer.forcedMove)
+                    try
                     {
-                        GameStatus += "Forced move.";
-                    }
-                    else
-                    {
-                        GameStatus += $"Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {(int)evalResultWithTimer.elapsedTime.TotalMilliseconds} ms. ";
-                        if (evalResultWithTimer.evalResult.Score == Connect4AIEngine.GameEngine.WinValue)
-                        {
-                            GameStatus += "AI will win.";
-                        }
-                        else if (evalResultWithTimer.evalResult.Score == -Connect4AIEngine.GameEngine.WinValue)
-                        {
-                            GameStatus += "AI might lose if you play right.";
-                        }
-                    }
+                        var progressReport = new BrowserProgressReport(this);
 
-                    moves.Push(new MoveEntry { Player = nextToPlay, Move = move });
-                    board.DropDiskAt(nextToPlay, move);
-                    UpdateBoard();
+                        var evalResultWithTimer = Connect4AIEngine.GameEngine.NegaMax(board, nextToPlay, this.Level, progressReport);
+                        move = evalResultWithTimer.evalResult.Move;
 
-                    winner = Connect4AIEngine.Disk.Empty;
-                    isWinReached = board.IsWinReached(ref winner, ref direction);
+                        GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. ";
 
-                    if (isWinReached)
-                    {
-                        if (winner == nextToPlay)
+                        if (evalResultWithTimer.forcedMove)
                         {
-                            GameStatus = $"Game over. AI won the game. Winning direction: {direction}";
+                            GameStatus += "Forced move.";
                         }
                         else
                         {
-                            GameStatus = $"Error 1002";
+                            GameStatus += $"Score = {evalResultWithTimer.evalResult.Score}. Elapsed time = {(int)evalResultWithTimer.elapsedTime.TotalMilliseconds} ms. ";
+                            if (evalResultWithTimer.evalResult.Score == Connect4AIEngine.GameEngine.WinValue)
+                            {
+                                GameStatus += "AI will win.";
+                            }
+                            else if (evalResultWithTimer.evalResult.Score == -Connect4AIEngine.GameEngine.WinValue)
+                            {
+                                GameStatus += "AI might lose if you play right.";
+                            }
                         }
-                    }
-                    else
-                    {
-                        if (!board.GetAvailableMovesForPlayer().Any())
+
+                        moves.Push(new MoveEntry { Player = nextToPlay, Move = move });
+                        board.DropDiskAt(nextToPlay, move);
+                        UpdateBoard();
+
+                        winner = Connect4AIEngine.Disk.Empty;
+                        isWinReached = board.IsWinReached(ref winner, ref direction);
+
+                        if (isWinReached)
                         {
-                            this.GameStatus = "Game over - no more moves";
+                            if (winner == nextToPlay)
+                            {
+                                GameStatus = $"Game over. AI won the game. Winning direction: {direction}";
+                            }
+                            else
+                            {
+                                GameStatus = $"Error 1002";
+                            }
                         }
                         else
                         {
-                            placeButtonsDisabled = false;
+                            if (!board.GetAvailableMoves().Any())
+                            {
+                                this.GameStatus = "Game over - no more moves";
+                            }
+                            else
+                            {
+                                placeButtonsDisabled = false;
+                            }
                         }
+                        nextToPlay = Connect4AIEngine.DiskMethods.Opposite(nextToPlay);
                     }
-
-                    nextToPlay = (nextToPlay == Connect4AIEngine.Disk.Red) ? Connect4AIEngine.Disk.Blue : Connect4AIEngine.Disk.Red;
-
+                    catch(Exception ex)
+                    {
+                        this.GameStatus = $"Error: {ex.Message}. Game over.";
+                    }
                 }
             }
         }
@@ -282,7 +351,7 @@
     private void UpdateGameHistory()
     {
         GameHistory = "";
-        foreach(var entry in moves)
+        foreach(var entry in moves.Reverse())
         {
             GameHistory = $"{GameHistory}{Connect4AIEngine.Board.GetDiskColorLetter(entry.Player)}{entry.Move}";
         }
