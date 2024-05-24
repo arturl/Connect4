@@ -274,7 +274,7 @@
                 this.GameStatus = "Analyzing...";
 
                 // Delay to redraw
-                await Task.Delay(100);
+                // await Task.Delay(100);
 
                 if (!board.GetAvailableMoves().Any())
                 {
@@ -285,8 +285,14 @@
                     try
                     {
                         var progressReport = new BrowserProgressReport(this);
-
+#if true
+                        var evalResultWithTimer = await Task.Run(() =>
+                        {
+                            return Connect4AIEngine.GameEngine.NegaMax(board, nextToPlay, this.Level, progressReport);
+                        });
+#else
                         var evalResultWithTimer = Connect4AIEngine.GameEngine.NegaMax(board, nextToPlay, this.Level, progressReport);
+#endif
                         move = evalResultWithTimer.evalResult.Move;
 
                         GameStatus = $"AI chose {evalResultWithTimer.evalResult.Move}. ";
