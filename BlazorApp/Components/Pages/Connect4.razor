@@ -19,6 +19,58 @@
     table {
         text-align: center;
     }
+
+    .game-cell {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        display: inline-block;
+    }
+
+    .game-cell img {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    .game-cell .background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+
+    .game-cell .foreground {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+    }
+
+    @@keyframes diskFall {
+        0% {
+            transform: translateY(var(--fall-distance));
+            opacity: 0.8;
+        }
+        85% {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        92% {
+            transform: translateY(-8px);
+        }
+        100% {
+            transform: translateY(0);
+        }
+    }
+
+    .disk-animating {
+        animation: diskFall var(--animation-duration) cubic-bezier(0.5, 0.05, 0.5, 1);
+    }
 </style>
 
 <table class="table">
@@ -34,26 +86,35 @@
             <th>6</th>
         </tr>
         <tr>
-            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button0">Drop disk here</button></td>
-            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button1">Drop disk here</button></td>
-            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button2">Drop disk here</button></td>
-            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button3">Drop disk here</button></td>
-            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button4">Drop disk here</button></td>
-            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button5">Drop disk here</button></td>
-            <td><button disabled=@(placeButtonsDisabled) class="btn btn-primary" @onclick="Button6">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled || isAnimating) class="btn btn-primary" @onclick="Button0">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled || isAnimating) class="btn btn-primary" @onclick="Button1">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled || isAnimating) class="btn btn-primary" @onclick="Button2">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled || isAnimating) class="btn btn-primary" @onclick="Button3">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled || isAnimating) class="btn btn-primary" @onclick="Button4">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled || isAnimating) class="btn btn-primary" @onclick="Button5">Drop disk here</button></td>
+            <td><button disabled=@(placeButtonsDisabled || isAnimating) class="btn btn-primary" @onclick="Button6">Drop disk here</button></td>
         </tr>
     </thead>
     <tbody>
-        @foreach (var row in data)
+        @for (int rowIndex = 0; rowIndex < data.Count; rowIndex++)
         {
+            var row = data[rowIndex];
             <tr>
-                <td><img src=@row[0]></td>
-                <td><img src=@row[1]></td>
-                <td><img src=@row[2]></td>
-                <td><img src=@row[3]></td>
-                <td><img src=@row[4]></td>
-                <td><img src=@row[5]></td>
-                <td><img src=@row[6]></td>
+                @for (int colIndex = 0; colIndex < 7; colIndex++)
+                {
+                    var col = colIndex;
+                    var rowIdx = rowIndex;
+                    var isAnimating = (animatingCol == col && animatingRow == rowIdx);
+                    var animClass = isAnimating ? "disk-animating" : "";
+                    var style = isAnimating ?
+                        $"--fall-distance: -{(rowIdx + 1) * 90}px; --animation-duration: {400 + rowIdx * 80}ms;" : "";
+                    <td>
+                        <div class="game-cell">
+                            <img class="background" src="empty.jpg">
+                            <img class="foreground @animClass" style="@style" src=@row[col]>
+                        </div>
+                    </td>
+                }
             </tr>
         }
     </tbody>
@@ -158,6 +219,11 @@
     private bool placeButtonsDisabled = true;
     private bool undoButtonDisabled = true;
 
+    // Animation state
+    private int animatingCol = -1;
+    private int animatingRow = -1;
+    private bool isAnimating = false;
+
     private Task Button0() => PressButton(0);
     private Task Button1() => PressButton(1);
     private Task Button2() => PressButton(2);
@@ -234,8 +300,6 @@
 
     private async Task PressButton(int move)
     {
-        //await Task.CompletedTask;
-
         var availableMoves = board.GetAvailableMoves();
         if (!availableMoves.Contains(move))
         {
@@ -250,8 +314,10 @@
 
             ProgressString = "0";
 
+            // Find target row BEFORE dropping, then drop and animate
+            int targetRow = FindTargetRow(move);
             board.DropDiskAt(nextToPlay, move);
-            UpdateBoard();
+            await AnimateDiskDrop(move, targetRow);
 
             Connect4AIEngine.Disk winner = Connect4AIEngine.Disk.Empty;
             string direction = string.Empty;
@@ -315,8 +381,11 @@
                         }
 
                         moves.Push(new MoveEntry { Player = nextToPlay, Move = move });
+
+                        // Find target row BEFORE dropping, then drop and animate for AI move
+                        int aiTargetRow = FindTargetRow(move);
                         board.DropDiskAt(nextToPlay, move);
-                        UpdateBoard();
+                        await AnimateDiskDrop(move, aiTargetRow);
 
                         winner = Connect4AIEngine.Disk.Empty;
                         isWinReached = board.IsWinReached(ref winner, ref direction);
@@ -363,6 +432,20 @@
         }
     }
 
+    private int FindTargetRow(int col)
+    {
+        // Find which row the disk WILL land in (BEFORE placing it)
+        // Search from bottom to top for the first empty cell
+        for (int row = 5; row >= 0; row--)
+        {
+            if (board[col, row] == Connect4AIEngine.Disk.Empty)
+            {
+                return row;
+            }
+        }
+        return -1; // Column is full
+    }
+
     private void UpdateBoard()
     {
         int irow = 0;
@@ -380,6 +463,40 @@
             irow++;
         }
         UpdateGameHistory();
+    }
+
+    private async Task AnimateDiskDrop(int col, int targetRow)
+    {
+        // Set animation state BEFORE updating the board visuals
+        animatingCol = col;
+        animatingRow = targetRow;
+        isAnimating = true;
+
+        // DEBUG: Check what disk is at this position
+        var diskAtPosition = board[col, targetRow];
+        System.Diagnostics.Debug.WriteLine($"Animating disk at col={col}, row={targetRow}, disk color={diskAtPosition}");
+
+        // Update the entire board (the foreground will show the colored disk, background shows empty)
+        UpdateBoard();
+
+        // DEBUG: Check what image was set
+        System.Diagnostics.Debug.WriteLine($"Image set to: {data[targetRow][col]}");
+
+        await InvokeAsync(StateHasChanged);
+
+        // Small delay to ensure render starts
+        await Task.Delay(50);
+
+        // Wait for animation to complete
+        int animationDuration = 400 + (targetRow * 80);
+        await Task.Delay(animationDuration);
+
+        // Clear animation state
+        animatingCol = -1;
+        animatingRow = -1;
+        isAnimating = false;
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private List<string[]> data = new List<String[]> { 
