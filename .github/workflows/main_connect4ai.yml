@@ -21,9 +21,6 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Build with dotnet
-        run: dotnet build BlazorApp/BlazorApp.sln --configuration Release
-
       - name: dotnet publish
         run: dotnet publish BlazorApp/BlazorApp.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp
 
