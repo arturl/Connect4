@@ -4,7 +4,7 @@ A Connect Four game implementation with an intelligent AI opponent, built with A
 
 ## 🎮 Live Demo
 
-Play online: [connect4ai.azurewebsites.net](https://connect4ai.azurewebsites.net/connect4)
+Play online: [connect4ai2.azurewebsites.net](https://connect4ai2.azurewebsites.net/connect4)
 
 ## 🏗️ Architecture
 
