@@ -71,6 +71,26 @@
     .disk-animating {
         animation: diskFall var(--animation-duration) cubic-bezier(0.5, 0.05, 0.5, 1);
     }
+
+    @@keyframes winPulse {
+        0%, 100% {
+            transform: scale(1);
+            filter: brightness(1);
+        }
+        50% {
+            transform: scale(1.3);
+            filter: brightness(2);
+        }
+    }
+
+    .winning-cell {
+        animation: winPulse 0.4s ease-in-out 7; /* Pulse 7 times = ~2.8 seconds */
+    }
+
+    .winning-cell-final {
+        transform: scale(1.15);
+        filter: brightness(1.4);
+    }
 </style>
 
 <table class="table">
@@ -105,13 +125,19 @@
                     var col = colIndex;
                     var rowIdx = rowIndex;
                     var isAnimating = (animatingCol == col && animatingRow == rowIdx);
+                    var isWinningCell = winningCells.Contains((col, rowIdx));
                     var animClass = isAnimating ? "disk-animating" : "";
+                    var winClass = "";
+                    if (isWinningCell)
+                    {
+                        winClass = winAnimationComplete ? "winning-cell-final" : (winAnimationActive ? "winning-cell" : "");
+                    }
                     var style = isAnimating ?
                         $"--fall-distance: -{(rowIdx + 1) * 90}px; --animation-duration: {400 + rowIdx * 80}ms;" : "";
                     <td>
                         <div class="game-cell">
                             <img class="background" src="empty.jpg">
-                            <img class="foreground @animClass" style="@style" src=@row[col]>
+                            <img class="foreground @animClass @winClass" style="@style" src=@row[col]>
                         </div>
                     </td>
                 }
@@ -224,6 +250,11 @@
     private int animatingRow = -1;
     private bool isAnimating = false;
 
+    // Winning animation state
+    private List<(int col, int row)> winningCells = new();
+    private bool winAnimationActive = false;
+    private bool winAnimationComplete = false;
+
     private Task Button0() => PressButton(0);
     private Task Button1() => PressButton(1);
     private Task Button2() => PressButton(2);
@@ -321,13 +352,15 @@
 
             Connect4AIEngine.Disk winner = Connect4AIEngine.Disk.Empty;
             string direction = string.Empty;
-            bool isWinReached = board.IsWinReached(ref winner, ref direction);
+            bool isWinReached = board.IsWinReached(ref winner, ref direction, out var playerWinningCells);
 
             if (isWinReached)
             {
                 if(winner == nextToPlay)
                 {
                     GameStatus = $"Congratulations, you won the game. Winning direction: {direction}";
+                    // Trigger winning animation
+                    await TriggerWinAnimation(playerWinningCells);
                 }
                 else
                 {
@@ -388,13 +421,15 @@
                         await AnimateDiskDrop(move, aiTargetRow);
 
                         winner = Connect4AIEngine.Disk.Empty;
-                        isWinReached = board.IsWinReached(ref winner, ref direction);
+                        isWinReached = board.IsWinReached(ref winner, ref direction, out var aiWinningCells);
 
                         if (isWinReached)
                         {
                             if (winner == nextToPlay)
                             {
                                 GameStatus = $"Game over. AI won the game. Winning direction: {direction}";
+                                // Trigger winning animation
+                                await TriggerWinAnimation(aiWinningCells);
                             }
                             else
                             {
@@ -495,6 +530,25 @@
         animatingCol = -1;
         animatingRow = -1;
         isAnimating = false;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task TriggerWinAnimation(List<(int col, int row)> cells)
+    {
+        // Set winning cells and start animation
+        winningCells = cells;
+        winAnimationActive = true;
+        winAnimationComplete = false;
+
+        await InvokeAsync(StateHasChanged);
+
+        // Wait for 3 seconds (7 pulses at 0.4s each = 2.8s, add buffer)
+        await Task.Delay(3000);
+
+        // Stop pulsing, keep highlighted
+        winAnimationActive = false;
+        winAnimationComplete = true;
 
         await InvokeAsync(StateHasChanged);
     }

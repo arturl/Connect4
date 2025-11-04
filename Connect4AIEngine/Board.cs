@@ -167,10 +167,16 @@ namespace Connect4AIEngine
 
         private bool IsWinReachedByCoordinateArrays(ref Disk disk, List<int[]> coordinateArrays)
         {
+            return IsWinReachedByCoordinateArrays(ref disk, coordinateArrays, null);
+        }
+
+        private bool IsWinReachedByCoordinateArrays(ref Disk disk, List<int[]> coordinateArrays, List<(int col, int row)> winningCells)
+        {
             foreach (var coordinateArray in coordinateArrays)
             {
                 Disk lastValueSeen = Disk.Empty;
                 int seqItemsDetected = 0;
+                List<(int col, int row)> currentSequence = new();
 
                 if (coordinateArray.Length > 1)
                 {
@@ -178,6 +184,7 @@ namespace Connect4AIEngine
                     int col = coordinateArray[1];
                     lastValueSeen = field[col, row];
                     seqItemsDetected = 1;
+                    currentSequence.Add((col, row));
                 }
 
                 for (int i = 2; i < coordinateArray.Length; i += 2)
@@ -188,9 +195,15 @@ namespace Connect4AIEngine
                     if (field[col, row] == lastValueSeen)
                     {
                         seqItemsDetected++;
+                        currentSequence.Add((col, row));
                         if (lastValueSeen != Disk.Empty && seqItemsDetected == 4)
                         {
                             disk = lastValueSeen;
+                            // Add the last 4 cells from currentSequence if requested
+                            if (winningCells != null)
+                            {
+                                winningCells.AddRange(currentSequence.Skip(currentSequence.Count - 4));
+                            }
                             return true;
                         }
                     }
@@ -198,6 +211,8 @@ namespace Connect4AIEngine
                     {
                         seqItemsDetected = 1;
                         lastValueSeen = field[col, row];
+                        currentSequence.Clear();
+                        currentSequence.Add((col, row));
                     }
                 }
             }
@@ -257,6 +272,11 @@ namespace Connect4AIEngine
 
         private bool IsWinReachedDiagonal(ref Disk disk, ref string direction)
         {
+            return IsWinReachedDiagonal(ref disk, ref direction, null);
+        }
+
+        private bool IsWinReachedDiagonal(ref Disk disk, ref string direction, List<(int col, int row)> winningCells)
+        {
             List<int[]> mainDiagonal =
             [
                 [2, 0, 3, 1, 4, 2, 5, 3],
@@ -267,7 +287,7 @@ namespace Connect4AIEngine
                 [0, 3, 1, 4, 2, 5, 3, 6]
             ];
 
-            if (IsWinReachedByCoordinateArrays(ref disk, mainDiagonal))
+            if (IsWinReachedByCoordinateArrays(ref disk, mainDiagonal, winningCells))
             {
                 direction = "main diagonal";
                 return true;
@@ -283,7 +303,7 @@ namespace Connect4AIEngine
                 [5, 3, 4, 4, 3, 5, 2, 6],
             ];
 
-            if (IsWinReachedByCoordinateArrays(ref disk, secondaryDiagonal))
+            if (IsWinReachedByCoordinateArrays(ref disk, secondaryDiagonal, winningCells))
             {
                 direction = "secondary diagonal";
                 return true;
@@ -293,6 +313,11 @@ namespace Connect4AIEngine
         }
 
         private bool IsWinReachedHorizontalFast(ref Disk disk, ref string direction)
+        {
+            return IsWinReachedHorizontalFast(ref disk, ref direction, null);
+        }
+
+        private bool IsWinReachedHorizontalFast(ref Disk disk, ref string direction, List<(int col, int row)> winningCells)
         {
             for (int row = this.maxRow; row >= this.minRow; row--)
             {
@@ -307,6 +332,14 @@ namespace Connect4AIEngine
                         {
                             disk = lastValueSeen;
                             direction = "horizontal";
+                            // Add the 4 winning cells if requested
+                            if (winningCells != null)
+                            {
+                                for (int i = 0; i < 4; i++)
+                                {
+                                    winningCells.Add((col - i, row));
+                                }
+                            }
                             return true;
                         }
                     }
@@ -323,6 +356,11 @@ namespace Connect4AIEngine
 
         private bool IsWinReachedVerticalFast(ref Disk disk, ref string direction)
         {
+            return IsWinReachedVerticalFast(ref disk, ref direction, null);
+        }
+
+        private bool IsWinReachedVerticalFast(ref Disk disk, ref string direction, List<(int col, int row)> winningCells)
+        {
             for (int col = 0; col < Width; col++)
             {
                 Disk lastValueSeen = field[col, 0];
@@ -336,6 +374,14 @@ namespace Connect4AIEngine
                         {
                             disk = lastValueSeen;
                             direction = "vertical";
+                            // Add the 4 winning cells if requested
+                            if (winningCells != null)
+                            {
+                                for (int i = 0; i < 4; i++)
+                                {
+                                    winningCells.Add((col, row - i));
+                                }
+                            }
                             return true;
                         }
                     }
@@ -355,6 +401,17 @@ namespace Connect4AIEngine
             if (IsWinReachedHorizontalFast(ref disk, ref direction)) return true;
             if (IsWinReachedVerticalFast(ref disk, ref direction)) return true;
             if (IsWinReachedDiagonal(ref disk, ref direction)) return true;
+
+            return false;
+        }
+
+        public bool IsWinReached(ref Disk disk, ref string direction, out List<(int col, int row)> winningCells)
+        {
+            winningCells = new List<(int col, int row)>();
+
+            if (IsWinReachedHorizontalFast(ref disk, ref direction, winningCells)) return true;
+            if (IsWinReachedVerticalFast(ref disk, ref direction, winningCells)) return true;
+            if (IsWinReachedDiagonal(ref disk, ref direction, winningCells)) return true;
 
             return false;
         }
