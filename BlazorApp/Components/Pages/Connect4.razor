@@ -313,12 +313,23 @@
                 lastMove = moves.Pop();
             }
 
-            nextToPlay = Connect4AIEngine.Disk.Blue;
             board = new Connect4AIEngine.Board();
             foreach(var entry in moves.Reverse())
             {
                 board.DropDiskAt(entry.Player, entry.Move);
             }
+
+            // Determine next player based on the last move in the reconstructed board
+            // If no moves remain, Blue starts; otherwise, opposite of last player
+            if (moves.Any())
+            {
+                nextToPlay = Connect4AIEngine.DiskMethods.Opposite(moves.Peek().Player);
+            }
+            else
+            {
+                nextToPlay = Connect4AIEngine.Disk.Blue;
+            }
+
             GameStatus = $"You took back your move {lastMove.Move}.";
             UpdateBoard();
         }
